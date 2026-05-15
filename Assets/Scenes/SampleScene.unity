@@ -1730,7 +1730,7 @@ MonoBehaviour:
   _buildOnStart: 1
   _rebuildExistingSurfaces: 1
   _addMeshColliders: 1
-  _floorWorldY: -0.45
+  _floorWorldY: -5
   _surfaces:
   - Name: Floor
     Kind: 0
