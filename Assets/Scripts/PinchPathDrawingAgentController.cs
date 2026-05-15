@@ -14,7 +14,7 @@ public sealed class PinchPathDrawingAgentController : MonoBehaviour
     [SerializeField] private float _pinchEndThreshold = 0.45f;
 
     [Header("Path Drawing")]
-    [SerializeField] private float _floorWorldY = 0.02f;
+    [SerializeField] private float _floorWorldY = 0.005f;
     [SerializeField] private float _sampleSpacing = 0.08f;
     [SerializeField] private int _maxPathPoints = 120;
     [SerializeField] private float _lineWidth = 0.035f;
