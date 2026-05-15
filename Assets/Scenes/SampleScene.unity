@@ -1682,6 +1682,149 @@ MonoBehaviour:
   installationRoutineCheckpoint:
     _installationRoutineId: 
     _installationVariants: []
+--- !u!1 &2100000001
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2100000002}
+  - component: {fileID: 2100000003}
+  m_Layer: 0
+  m_Name: '[Task 2] Spatial Surface Anchor Manager'
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2100000002
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2100000001}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2100000003
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2100000001}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b62683e72df842bca94fbe92d944f834, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _origin: {fileID: 0}
+  _buildOnStart: 1
+  _rebuildExistingSurfaces: 1
+  _addMeshColliders: 1
+  _floorWorldY: 0
+  _surfaces:
+  - Name: Floor
+    Kind: 0
+    LocalPosition: {x: 0, y: 0, z: 0.8}
+    LocalEulerAngles: {x: 0, y: 0, z: 0}
+    Size: {x: 3, y: 3}
+    Color: {r: 0.1, g: 0.8, b: 0.65, a: 0.28}
+  - Name: Front Wall
+    Kind: 1
+    LocalPosition: {x: 0, y: 1.25, z: 2.3}
+    LocalEulerAngles: {x: 0, y: 180, z: 0}
+    Size: {x: 3, y: 2.5}
+    Color: {r: 0.1, g: 0.45, b: 1, a: 0.24}
+  - Name: Back Wall
+    Kind: 1
+    LocalPosition: {x: 0, y: 1.25, z: -0.7}
+    LocalEulerAngles: {x: 0, y: 0, z: 0}
+    Size: {x: 3, y: 2.5}
+    Color: {r: 0.55, g: 0.35, b: 1, a: 0.24}
+  - Name: Left Wall
+    Kind: 1
+    LocalPosition: {x: -1.5, y: 1.25, z: 0.8}
+    LocalEulerAngles: {x: 0, y: 90, z: 0}
+    Size: {x: 3, y: 2.5}
+    Color: {r: 1, g: 0.75, b: 0.1, a: 0.24}
+  - Name: Right Wall
+    Kind: 1
+    LocalPosition: {x: 1.5, y: 1.25, z: 0.8}
+    LocalEulerAngles: {x: 0, y: -90, z: 0}
+    Size: {x: 3, y: 2.5}
+    Color: {r: 1, g: 0.35, b: 0.2, a: 0.24}
+--- !u!1 &2100000101
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2100000102}
+  - component: {fileID: 2100000103}
+  m_Layer: 0
+  m_Name: '[Task 3] Pinch Path Drawing Agent Controller'
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2100000102
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2100000101}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2100000103
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2100000101}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8eb4ea81df774d4d9394661facdf260d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _avatar: {fileID: 0}
+  _drawingHand: {fileID: 0}
+  _drawingHandSkeleton: {fileID: 0}
+  _pinchFinger: 1
+  _pinchStartThreshold: 0.72
+  _pinchEndThreshold: 0.45
+  _floorWorldY: 0.02
+  _sampleSpacing: 0.08
+  _maxPathPoints: 120
+  _lineWidth: 0.035
+  _drawingColor: {r: 0.2, g: 0.95, b: 1, a: 0.9}
+  _committedColor: {r: 0.15, g: 1, b: 0.45, a: 0.95}
+  _moveSpeed: 1.15
+  _turnSpeed: 540
+  _arrivalDistance: 0.06
+  _obstacleProbeRadius: 0.2
+  _obstacleMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -1690,3 +1833,5 @@ SceneRoots:
   - {fileID: 424292466}
   - {fileID: 1941844824}
   - {fileID: 338210503}
+  - {fileID: 2100000002}
+  - {fileID: 2100000102}
