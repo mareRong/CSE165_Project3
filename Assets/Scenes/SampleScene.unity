@@ -169,7 +169,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 032c1dae0ce8a488c84e448e0d859e71, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 1.75
+      value: 8
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 032c1dae0ce8a488c84e448e0d859e71, type: 3}
       propertyPath: m_LocalScale.x
@@ -1743,6 +1743,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _origin: {fileID: 0}
+  _placeRelativeToHeadset: 0
   _buildOnStart: 1
   _rebuildExistingSurfaces: 1
   _addMeshColliders: 1
