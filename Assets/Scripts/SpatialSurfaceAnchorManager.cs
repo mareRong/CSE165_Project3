@@ -25,7 +25,7 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
     [SerializeField] private bool _buildOnStart = true;
     [SerializeField] private bool _rebuildExistingSurfaces = true;
     [SerializeField] private bool _addMeshColliders = true;
-    [SerializeField] private float _floorWorldY = -8f;
+    [SerializeField] private float _floorWorldY = -15f;
     [SerializeField] private SurfaceDefinition[] _surfaces =
     {
         new SurfaceDefinition
