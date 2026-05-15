@@ -1,14 +1,13 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.XR.Hands;
 using UnityEngine.XR.Management;
+using TMPro;
 
-public class HandPinningTravel : MonoBehaviour
+public class HandTrackingPinning : MonoBehaviour
 {
-    [Header("Agent")]
-    public Transform agent;
-    public Animator agentAnimator;
-    public float moveSpeed = 3f;
-    public float stopDistance = 0.3f;
+    [Header("Travel Script")]
+    public AgentTravel agentTravel;
 
     [Header("Pinning Ray")]
     public LayerMask groundLayer;
@@ -26,9 +25,14 @@ public class HandPinningTravel : MonoBehaviour
     public float rayCurveHeight = 1.5f;
     public int raySegments = 24;
 
-    [Header("Preview Animation")]
-    public float previewBobSpeed = 3f;
-    public float previewBobHeight = 0.08f;
+    [Header("Preview Pulse Animation")]
+    public float previewPulseSpeed = 3f;
+    public float minPreviewAlpha = 0.25f;
+    public float maxPreviewAlpha = 1f;
+
+    [Header("UI Message")]
+    public TextMeshProUGUI statusText;
+    public float statusMessageDuration = 3f;
 
     private XRHandSubsystem handSubsystem;
 
@@ -38,20 +42,16 @@ public class HandPinningTravel : MonoBehaviour
     private Vector3 currentRayEndPoint;
     private bool hasValidRayHit = false;
 
-    private Vector3 targetPosition;
-    private bool hasTarget = false;
-
     private GameObject currentPin;
+    private Coroutine statusCoroutine;
 
     void Start()
     {
         TryInitializeHands();
-
-        if (agentAnimator == null && agent != null)
-            agentAnimator = agent.GetComponent<Animator>();
-
         HidePinningVisuals();
-        SetWalking(false);
+
+        if (statusText != null)
+            statusText.gameObject.SetActive(false);
     }
 
     void Update()
@@ -67,7 +67,6 @@ public class HandPinningTravel : MonoBehaviour
         if (!rightHand.isTracked)
         {
             HidePinningVisuals();
-            MoveAgentToTarget();
             return;
         }
 
@@ -75,15 +74,17 @@ public class HandPinningTravel : MonoBehaviour
         bool thumbsDown = IsRightThumbsDown(rightHand);
         bool isPinching = IsRightPinching(rightHand);
 
-        if (thumbsUp)
+        if (thumbsUp && !isPinningMode)
         {
             isPinningMode = true;
+            ShowStatusMessage("Pinning Mode Activated");
         }
 
-        if (thumbsDown)
+        if (thumbsDown && isPinningMode)
         {
             isPinningMode = false;
             HidePinningVisuals();
+            ShowStatusMessage("Pinning Mode Cancelled");
         }
 
         if (isPinningMode)
@@ -104,8 +105,6 @@ public class HandPinningTravel : MonoBehaviour
         }
 
         wasPinching = isPinching;
-
-        MoveAgentToTarget();
     }
 
     private bool IsRightThumbsUp(XRHand hand)
@@ -195,9 +194,6 @@ public class HandPinningTravel : MonoBehaviour
             return;
 
         Vector3 startPoint = wristPose.position;
-
-        // This is the important change:
-        // ray direction is now wrist -> index fingertip
         Vector3 forward = indexPose.position - wristPose.position;
 
         if (forward.sqrMagnitude < 0.0001f)
@@ -251,12 +247,29 @@ public class HandPinningTravel : MonoBehaviour
         if (pinPreviewCircle != null && hasValidRayHit)
         {
             pinPreviewCircle.SetActive(true);
+            pinPreviewCircle.transform.position = currentRayEndPoint;
 
-            Vector3 bobOffset =
-                Vector3.up * Mathf.Sin(Time.time * previewBobSpeed) * previewBobHeight;
-
-            pinPreviewCircle.transform.position = currentRayEndPoint + bobOffset;
+            PulsePreviewCircle();
         }
+    }
+
+    private void PulsePreviewCircle()
+    {
+        Renderer circleRenderer = pinPreviewCircle.GetComponent<Renderer>();
+
+        if (circleRenderer == null)
+            return;
+
+        Color color = circleRenderer.material.color;
+
+        float alpha = Mathf.Lerp(
+            minPreviewAlpha,
+            maxPreviewAlpha,
+            (Mathf.Sin(Time.time * previewPulseSpeed) + 1f) * 0.5f
+        );
+
+        color.a = alpha;
+        circleRenderer.material.color = color;
     }
 
     private void PlacePin()
@@ -264,51 +277,18 @@ public class HandPinningTravel : MonoBehaviour
         if (!hasValidRayHit)
             return;
 
-        targetPosition = currentRayEndPoint;
-        hasTarget = true;
-
         if (currentPin != null)
             Destroy(currentPin);
 
         if (pinPrefab != null)
-            currentPin = Instantiate(pinPrefab, targetPosition, Quaternion.identity);
+            currentPin = Instantiate(pinPrefab, currentRayEndPoint, Quaternion.identity);
+
+        if (agentTravel != null)
+            agentTravel.SetDestination(currentRayEndPoint);
 
         isPinningMode = false;
         HidePinningVisuals();
-    }
-
-    private void MoveAgentToTarget()
-    {
-        if (!hasTarget || agent == null)
-        {
-            SetWalking(false);
-            return;
-        }
-
-        Vector3 flatTarget = new Vector3(targetPosition.x, agent.position.y, targetPosition.z);
-        Vector3 direction = flatTarget - agent.position;
-
-        if (direction.magnitude <= stopDistance)
-        {
-            hasTarget = false;
-            SetWalking(false);
-            return;
-        }
-
-        SetWalking(true);
-
-        agent.position += direction.normalized * moveSpeed * Time.deltaTime;
-
-        Quaternion targetRotation = Quaternion.LookRotation(direction.normalized, Vector3.up);
-        agent.rotation = Quaternion.Slerp(agent.rotation, targetRotation, Time.deltaTime * 5f);
-    }
-
-    private void SetWalking(bool walking)
-    {
-        if (agentAnimator != null)
-        {
-            agentAnimator.SetBool("Walking", walking);
-        }
+        ShowStatusMessage("Pin Placed");
     }
 
     private void HidePinningVisuals()
@@ -320,6 +300,27 @@ public class HandPinningTravel : MonoBehaviour
             pinPreviewCircle.SetActive(false);
 
         hasValidRayHit = false;
+    }
+
+    private void ShowStatusMessage(string message)
+    {
+        if (statusText == null)
+            return;
+
+        if (statusCoroutine != null)
+            StopCoroutine(statusCoroutine);
+
+        statusCoroutine = StartCoroutine(StatusMessageRoutine(message));
+    }
+
+    private IEnumerator StatusMessageRoutine(string message)
+    {
+        statusText.gameObject.SetActive(true);
+        statusText.text = message;
+
+        yield return new WaitForSeconds(statusMessageDuration);
+
+        statusText.gameObject.SetActive(false);
     }
 
     private void TryInitializeHands()
