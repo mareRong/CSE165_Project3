@@ -1734,7 +1734,7 @@ MonoBehaviour:
   _buildOnStart: 1
   _rebuildExistingSurfaces: 1
   _addMeshColliders: 1
-  _floorWorldY: -0.03
+  _floorWorldY: -5
   _surfaces:
   - Name: Floor
     Kind: 0
@@ -1816,7 +1816,7 @@ MonoBehaviour:
   _pinchFinger: 1
   _pinchStartThreshold: 0.72
   _pinchEndThreshold: 0.45
-  _floorWorldY: 0.005
+  _floorWorldY: 0
   _sampleSpacing: 0.08
   _maxPathPoints: 120
   _lineWidth: 0.035
