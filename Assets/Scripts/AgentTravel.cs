@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -15,6 +16,8 @@ public class AgentTravel : MonoBehaviour
     [Header("NavMesh")]
     public bool useNavMesh = false;
     public NavMeshAgent navMeshAgent;
+
+    public event Action DestinationReached;
 
     private Vector3 targetPosition;
     private bool hasTarget = false;
@@ -76,6 +79,7 @@ public class AgentTravel : MonoBehaviour
         {
             hasTarget = false;
             SetWalking(false);
+            DestinationReached?.Invoke();
             return;
         }
 
@@ -112,6 +116,7 @@ public class AgentTravel : MonoBehaviour
         {
             hasTarget = false;
             SetWalking(false);
+            DestinationReached?.Invoke();
             return;
         }
 
