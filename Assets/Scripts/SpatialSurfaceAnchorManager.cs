@@ -7,7 +7,9 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
     public enum SurfaceKind
     {
         Floor,
-        Wall
+        Wall,
+        Table,
+        Chair
     }
 
     [Serializable]
@@ -73,6 +75,33 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
             LocalEulerAngles = new Vector3(0f, -90f, 0f),
             Size = new Vector2(3f, 2.5f),
             Color = new Color(1f, 0.35f, 0.2f, 0.24f)
+        },
+        new SurfaceDefinition
+        {
+            Name = "Table",
+            Kind = SurfaceKind.Table,
+            LocalPosition = new Vector3(0f, 0.75f, 1.15f),
+            LocalEulerAngles = Vector3.zero,
+            Size = new Vector2(1.2f, 0.8f),
+            Color = new Color(1f, 0.92f, 0.08f, 0.36f)
+        },
+        new SurfaceDefinition
+        {
+            Name = "Chair Left",
+            Kind = SurfaceKind.Chair,
+            LocalPosition = new Vector3(-0.75f, 0.45f, 1.15f),
+            LocalEulerAngles = Vector3.zero,
+            Size = new Vector2(0.55f, 0.55f),
+            Color = new Color(1f, 0.18f, 0.55f, 0.38f)
+        },
+        new SurfaceDefinition
+        {
+            Name = "Chair Right",
+            Kind = SurfaceKind.Chair,
+            LocalPosition = new Vector3(0.75f, 0.45f, 1.15f),
+            LocalEulerAngles = Vector3.zero,
+            Size = new Vector2(0.55f, 0.55f),
+            Color = new Color(1f, 0.18f, 0.55f, 0.38f)
         }
     };
 
@@ -209,7 +238,7 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
         float halfHeight = Mathf.Max(0.01f, surface.Size.y) * 0.5f;
         Vector3[] vertices;
 
-        if (surface.Kind == SurfaceKind.Floor)
+        if (IsHorizontalSurface(surface.Kind))
         {
             vertices = new[]
             {
@@ -247,6 +276,13 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
         mesh.RecalculateNormals();
         mesh.RecalculateBounds();
         return mesh;
+    }
+
+    private static bool IsHorizontalSurface(SurfaceKind kind)
+    {
+        return kind == SurfaceKind.Floor
+            || kind == SurfaceKind.Table
+            || kind == SurfaceKind.Chair;
     }
 
     private Material GetSurfaceMaterial()
