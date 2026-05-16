@@ -2126,13 +2126,13 @@ MonoBehaviour:
   _buildOnStart: 1
   _rebuildExistingSurfaces: 1
   _addMeshColliders: 1
-  _floorWorldY: -1.24
+  _floorWorldY: -1.25
   _surfaces:
   - Name: Floor
     Kind: 0
     LocalPosition: {x: 0, y: 0, z: 0.8}
     LocalEulerAngles: {x: 0, y: 0, z: 0}
-    Size: {x: 3, y: 3}
+    Size: {x: 100, y: 100}
     Color: {r: 0.08, g: 0.42, b: 1, a: 0.32}
   - Name: Front Wall
     Kind: 1
