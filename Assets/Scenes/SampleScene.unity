@@ -177,7 +177,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 032c1dae0ce8a488c84e448e0d859e71, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -1.24
+      value: -0.86
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 032c1dae0ce8a488c84e448e0d859e71, type: 3}
       propertyPath: m_LocalPosition.z
@@ -645,15 +645,16 @@ MonoBehaviour:
   agentTravel: {fileID: 0}
   groundLayer:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 1
   curvedRay: {fileID: 0}
   pinPreviewCircle: {fileID: 0}
   pinPrefab: {fileID: 0}
   fistThreshold: 0.075
   thumbHeightThreshold: 0.08
   pinchThreshold: 0.035
-  rayDistance: 8
+  rayForwardDistance: 3.5
   rayCurveHeight: 1.5
+  rayVerticalDrop: 0.8
   raySegments: 24
   rayWidth: 0.01
   rayColor: {r: 0.2, g: 0.85, b: 1, a: 0.95}
@@ -667,6 +668,10 @@ MonoBehaviour:
   pinStemRadius: 0.012
   pinHeadRadius: 0.04
   pinColor: {r: 1, g: 0.25, b: 0.2, a: 1}
+  createTemporaryTestFloor: 1
+  testFloorPosition: {x: 0, y: 0, z: 2}
+  testFloorScale: {x: 2, y: 1, z: 2}
+  testFloorColor: {r: 0.3, g: 0.32, b: 0.36, a: 1}
   statusText: {fileID: 1950750448}
   statusMessageDuration: 3
 --- !u!1 &429530065
@@ -2201,8 +2206,9 @@ MonoBehaviour:
   fistThreshold: 0.075
   thumbHeightThreshold: 0.08
   pinchThreshold: 0.035
-  rayDistance: 8
+  rayForwardDistance: 3.5
   rayCurveHeight: 1.5
+  rayVerticalDrop: 0.8
   raySegments: 24
   rayWidth: 0.01
   rayColor: {r: 0.2, g: 0.85, b: 1, a: 0.95}
@@ -2216,6 +2222,10 @@ MonoBehaviour:
   pinStemRadius: 0.012
   pinHeadRadius: 0.04
   pinColor: {r: 1, g: 0.25, b: 0.2, a: 1}
+  createTemporaryTestFloor: 1
+  testFloorPosition: {x: 0, y: 0, z: 2}
+  testFloorScale: {x: 2, y: 1, z: 2}
+  testFloorColor: {r: 0.3, g: 0.32, b: 0.36, a: 1}
   statusText: {fileID: 0}
   statusMessageDuration: 3
 --- !u!1 &2144580149

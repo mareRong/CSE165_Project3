@@ -9,6 +9,7 @@ public class HandTrackingPinning : MonoBehaviour
     private const string RuntimeRayName = "RuntimeCurvedRay";
     private const string RuntimePreviewName = "RuntimePinPreview";
     private const string RuntimePinName = "RuntimePin";
+    private const string RuntimeFloorName = "RuntimeTestFloor";
 
     [Header("Travel Script")]
     public AgentTravel agentTravel;
@@ -25,8 +26,9 @@ public class HandTrackingPinning : MonoBehaviour
     public float pinchThreshold = 0.035f;
 
     [Header("Ray Settings")]
-    public float rayDistance = 8f;
-    public float rayCurveHeight = 1.5f;
+    public float rayForwardDistance = 3.5f;
+    public float rayCurveHeight = 0.6f;
+    public float rayVerticalDrop = 0.8f;
     public int raySegments = 24;
     public float rayWidth = 0.01f;
     public Color rayColor = new Color(0.2f, 0.85f, 1f, 0.95f);
@@ -45,6 +47,12 @@ public class HandTrackingPinning : MonoBehaviour
     public float pinHeadRadius = 0.04f;
     public Color pinColor = new Color(1f, 0.25f, 0.2f, 1f);
 
+    [Header("Temporary Test Floor")]
+    public bool createTemporaryTestFloor = true;
+    public Vector3 testFloorPosition = new Vector3(0f, 0f, 2f);
+    public Vector3 testFloorScale = new Vector3(2f, 1f, 2f);
+    public Color testFloorColor = new Color(0.3f, 0.32f, 0.36f, 1f);
+
     [Header("UI Message")]
     public TextMeshProUGUI statusText;
     public float statusMessageDuration = 3f;
@@ -58,11 +66,13 @@ public class HandTrackingPinning : MonoBehaviour
     private bool hasValidRayHit = false;
 
     private GameObject currentPin;
+    private GameObject runtimeTestFloor;
     private Coroutine statusCoroutine;
 
     void Start()
     {
         TryInitializeHands();
+        EnsureTemporaryTestFloor();
         HidePinningVisuals();
 
         if (statusText != null)
@@ -108,7 +118,7 @@ public class HandTrackingPinning : MonoBehaviour
             {
                 UpdateCurvedRay(rightHand);
             }
-            else
+            else if (!wasPinching)
             {
                 HidePinningVisuals();
             }
@@ -218,8 +228,8 @@ public class HandTrackingPinning : MonoBehaviour
 
         forward.Normalize();
 
-        Vector3 endPoint = startPoint + forward * rayDistance;
-        endPoint.y -= rayCurveHeight;
+        Vector3 endPoint = startPoint + forward * rayForwardDistance;
+        endPoint.y -= rayVerticalDrop;
 
         Vector3[] points = new Vector3[raySegments];
         hasValidRayHit = false;
@@ -407,6 +417,23 @@ public class HandTrackingPinning : MonoBehaviour
         curvedRay.material = new Material(Shader.Find("Sprites/Default"));
         curvedRay.startColor = rayColor;
         curvedRay.endColor = rayColor;
+    }
+
+    private void EnsureTemporaryTestFloor()
+    {
+        if (!createTemporaryTestFloor || runtimeTestFloor != null)
+            return;
+
+        runtimeTestFloor = GameObject.CreatePrimitive(PrimitiveType.Plane);
+        runtimeTestFloor.name = RuntimeFloorName;
+        runtimeTestFloor.transform.position = testFloorPosition;
+        runtimeTestFloor.transform.localScale = testFloorScale;
+
+        Renderer floorRenderer = runtimeTestFloor.GetComponent<Renderer>();
+        if (floorRenderer != null)
+        {
+            floorRenderer.material.color = testFloorColor;
+        }
     }
 
     private GameObject CreateFallbackPin(Vector3 pinPosition)
