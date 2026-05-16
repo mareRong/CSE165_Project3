@@ -25,8 +25,9 @@ public class HandTrackingPinning : MonoBehaviour
     public float pinchThreshold = 0.035f;
 
     [Header("Ray Settings")]
-    public float rayDistance = 8f;
-    public float rayCurveHeight = 1.5f;
+    public float rayForwardDistance = 3.5f;
+    public float rayCurveHeight = 0.6f;
+    public float rayVerticalDrop = 0.8f;
     public int raySegments = 24;
     public float rayWidth = 0.01f;
     public Color rayColor = new Color(0.2f, 0.85f, 1f, 0.95f);
@@ -108,7 +109,7 @@ public class HandTrackingPinning : MonoBehaviour
             {
                 UpdateCurvedRay(rightHand);
             }
-            else
+            else if (!wasPinching)
             {
                 HidePinningVisuals();
             }
@@ -218,8 +219,8 @@ public class HandTrackingPinning : MonoBehaviour
 
         forward.Normalize();
 
-        Vector3 endPoint = startPoint + forward * rayDistance;
-        endPoint.y -= rayCurveHeight;
+        Vector3 endPoint = startPoint + forward * rayForwardDistance;
+        endPoint.y -= rayVerticalDrop;
 
         Vector3[] points = new Vector3[raySegments];
         hasValidRayHit = false;
