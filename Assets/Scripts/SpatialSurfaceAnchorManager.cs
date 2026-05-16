@@ -36,7 +36,7 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
             LocalPosition = new Vector3(0f, 0f, 0.8f),
             LocalEulerAngles = Vector3.zero,
             Size = new Vector2(3f, 3f),
-            Color = new Color(0.1f, 0.8f, 0.65f, 0.28f)
+            Color = new Color(0.08f, 0.42f, 1f, 0.32f)
         },
         new SurfaceDefinition
         {
@@ -126,12 +126,9 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
             MeshFilter meshFilter = meshObject.AddComponent<MeshFilter>();
             meshFilter.sharedMesh = CreateSurfaceMesh(surface);
 
-            if (surface.Kind != SurfaceKind.Floor)
-            {
-                MeshRenderer meshRenderer = meshObject.AddComponent<MeshRenderer>();
-                meshRenderer.sharedMaterial = GetSurfaceMaterial();
-                meshRenderer.material.color = surface.Color;
-            }
+            MeshRenderer meshRenderer = meshObject.AddComponent<MeshRenderer>();
+            meshRenderer.sharedMaterial = GetSurfaceMaterial();
+            meshRenderer.material.color = surface.Color;
 
             if (_addMeshColliders)
             {
