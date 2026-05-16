@@ -1894,31 +1894,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8eb4ea81df774d4d9394661facdf260d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-<<<<<<< Updated upstream
   agentTravel: {fileID: 0}
   groundLayer:
-=======
-  _avatar: {fileID: 0}
-  _drawingHand: {fileID: 0}
-  _drawingHandSkeleton: {fileID: 0}
-  _avatarStartPosition: {x: 0, y: -30, z: 22}
-  _avatarStartEulerAngles: {x: 0, y: 180, z: 0}
-  _avatarStartScale: 8
-  _pinchFinger: 1
-  _pinchStartThreshold: 0.72
-  _pinchEndThreshold: 0.45
-  _floorWorldY: 0
-  _sampleSpacing: 0.08
-  _maxPathPoints: 120
-  _lineWidth: 0.035
-  _drawingColor: {r: 0.2, g: 0.95, b: 1, a: 0.9}
-  _committedColor: {r: 0.15, g: 1, b: 0.45, a: 0.95}
-  _moveSpeed: 1.15
-  _turnSpeed: 540
-  _arrivalDistance: 0.06
-  _obstacleProbeRadius: 0.2
-  _obstacleMask:
->>>>>>> Stashed changes
     serializedVersion: 2
     m_Bits: 0
   curvedRay: {fileID: 0}
