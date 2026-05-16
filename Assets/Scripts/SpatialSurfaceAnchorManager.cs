@@ -26,7 +26,7 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
     [SerializeField] private bool _buildOnStart = true;
     [SerializeField] private bool _rebuildExistingSurfaces = true;
     [SerializeField] private bool _addMeshColliders = true;
-    [SerializeField] private float _floorWorldY = -1.24f;
+    [SerializeField] private float _floorWorldY = -1.25f;
     [SerializeField] private SurfaceDefinition[] _surfaces =
     {
         new SurfaceDefinition
@@ -35,7 +35,7 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
             Kind = SurfaceKind.Floor,
             LocalPosition = new Vector3(0f, 0f, 0.8f),
             LocalEulerAngles = Vector3.zero,
-            Size = new Vector2(3f, 3f),
+            Size = new Vector2(100f, 100f),
             Color = new Color(0.08f, 0.42f, 1f, 0.32f)
         },
         new SurfaceDefinition
@@ -134,12 +134,6 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
             {
                 MeshCollider meshCollider = meshObject.AddComponent<MeshCollider>();
                 meshCollider.sharedMesh = meshFilter.sharedMesh;
-
-                if (surface.Kind == SurfaceKind.Floor)
-                {
-                    FloorFovOverlay floorFovOverlay = meshObject.AddComponent<FloorFovOverlay>();
-                    floorFovOverlay.Initialize(Camera.main, meshCollider);
-                }
             }
 
             SpatialSurfaceMarker marker = anchorObject.AddComponent<SpatialSurfaceMarker>();
