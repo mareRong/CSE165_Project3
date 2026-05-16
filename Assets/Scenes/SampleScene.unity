@@ -276,6 +276,16 @@ MonoBehaviour:
   stopDistance: 0.3
   useNavMesh: 0
   navMeshAgent: {fileID: 0}
+  keepAvatarOnGround: 1
+  groundLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  groundProbeHeight: 2
+  groundProbeDistance: 6
+  groundOffset: 0.01
+  showFootGroundHighlight: 1
+  footHighlightRadius: 0.35
+  footHighlightColor: {r: 0.2, g: 0.95, b: 1, a: 0.68}
 --- !u!95 &338210509
 Animator:
   serializedVersion: 7
@@ -2120,14 +2130,14 @@ MonoBehaviour:
   _buildOnStart: 1
   _rebuildExistingSurfaces: 1
   _addMeshColliders: 1
-  _floorWorldY: -15
+  _floorWorldY: -1.24
   _surfaces:
   - Name: Floor
     Kind: 0
     LocalPosition: {x: 0, y: 0, z: 0.8}
     LocalEulerAngles: {x: 0, y: 0, z: 0}
     Size: {x: 3, y: 3}
-    Color: {r: 0.1, g: 0.8, b: 0.65, a: 0.28}
+    Color: {r: 0.08, g: 0.42, b: 1, a: 0.32}
   - Name: Front Wall
     Kind: 1
     LocalPosition: {x: 0, y: 1.25, z: 2.3}
