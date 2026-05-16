@@ -6,6 +6,10 @@ using TMPro;
 
 public class HandTrackingPinning : MonoBehaviour
 {
+    private const string RuntimeRayName = "RuntimeCurvedRay";
+    private const string RuntimePreviewName = "RuntimePinPreview";
+    private const string RuntimePinName = "RuntimePin";
+
     [Header("Travel Script")]
     public AgentTravel agentTravel;
 
@@ -24,11 +28,22 @@ public class HandTrackingPinning : MonoBehaviour
     public float rayDistance = 8f;
     public float rayCurveHeight = 1.5f;
     public int raySegments = 24;
+    public float rayWidth = 0.01f;
+    public Color rayColor = new Color(0.2f, 0.85f, 1f, 0.95f);
 
     [Header("Preview Pulse Animation")]
     public float previewPulseSpeed = 3f;
     public float minPreviewAlpha = 0.25f;
     public float maxPreviewAlpha = 1f;
+
+    [Header("Generated Pin Visuals")]
+    public float previewCircleRadius = 0.12f;
+    public float previewCircleThickness = 0.005f;
+    public Color previewColor = new Color(0.15f, 0.75f, 1f, 0.75f);
+    public float pinStemHeight = 0.18f;
+    public float pinStemRadius = 0.012f;
+    public float pinHeadRadius = 0.04f;
+    public Color pinColor = new Color(1f, 0.25f, 0.2f, 1f);
 
     [Header("UI Message")]
     public TextMeshProUGUI statusText;
@@ -193,6 +208,8 @@ public class HandTrackingPinning : MonoBehaviour
         if (!TryGetJointPose(hand, XRHandJointID.IndexTip, out Pose indexPose))
             return;
 
+        EnsureCurvedRay();
+
         Vector3 startPoint = wristPose.position;
         Vector3 forward = indexPose.position - wristPose.position;
 
@@ -206,6 +223,7 @@ public class HandTrackingPinning : MonoBehaviour
 
         Vector3[] points = new Vector3[raySegments];
         hasValidRayHit = false;
+        LayerMask raycastMask = groundLayer.value == 0 ? Physics.DefaultRaycastLayers : groundLayer;
 
         for (int i = 0; i < raySegments; i++)
         {
@@ -222,7 +240,7 @@ public class HandTrackingPinning : MonoBehaviour
                 Vector3 direction = point - previousPoint;
                 float distance = direction.magnitude;
 
-                if (Physics.Raycast(previousPoint, direction.normalized, out RaycastHit hit, distance, groundLayer))
+                if (Physics.Raycast(previousPoint, direction.normalized, out RaycastHit hit, distance, raycastMask))
                 {
                     currentRayEndPoint = hit.point;
                     hasValidRayHit = true;
@@ -244,10 +262,12 @@ public class HandTrackingPinning : MonoBehaviour
             curvedRay.SetPositions(points);
         }
 
+        EnsurePreviewCircle();
+
         if (pinPreviewCircle != null && hasValidRayHit)
         {
             pinPreviewCircle.SetActive(true);
-            pinPreviewCircle.transform.position = currentRayEndPoint;
+            pinPreviewCircle.transform.position = currentRayEndPoint + Vector3.up * 0.002f;
 
             PulsePreviewCircle();
         }
@@ -281,7 +301,13 @@ public class HandTrackingPinning : MonoBehaviour
             Destroy(currentPin);
 
         if (pinPrefab != null)
+        {
             currentPin = Instantiate(pinPrefab, currentRayEndPoint, Quaternion.identity);
+        }
+        else
+        {
+            currentPin = CreateFallbackPin(currentRayEndPoint);
+        }
 
         if (agentTravel != null)
             agentTravel.SetDestination(currentRayEndPoint);
@@ -343,5 +369,79 @@ public class HandTrackingPinning : MonoBehaviour
     {
         XRHandJoint joint = hand.GetJoint(jointID);
         return joint.TryGetPose(out pose);
+    }
+
+    private void EnsurePreviewCircle()
+    {
+        if (pinPreviewCircle != null)
+            return;
+
+        pinPreviewCircle = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+        pinPreviewCircle.name = RuntimePreviewName;
+        pinPreviewCircle.transform.SetParent(transform, false);
+        pinPreviewCircle.transform.localScale = new Vector3(
+            previewCircleRadius * 2f,
+            previewCircleThickness,
+            previewCircleRadius * 2f
+        );
+
+        ConfigurePrimitive(pinPreviewCircle, previewColor);
+        pinPreviewCircle.SetActive(false);
+    }
+
+    private void EnsureCurvedRay()
+    {
+        if (curvedRay != null)
+            return;
+
+        GameObject rayObject = new GameObject(RuntimeRayName);
+        rayObject.transform.SetParent(transform, false);
+
+        curvedRay = rayObject.AddComponent<LineRenderer>();
+        curvedRay.enabled = false;
+        curvedRay.useWorldSpace = true;
+        curvedRay.positionCount = 0;
+        curvedRay.widthMultiplier = rayWidth;
+        curvedRay.numCapVertices = 6;
+        curvedRay.numCornerVertices = 4;
+        curvedRay.material = new Material(Shader.Find("Sprites/Default"));
+        curvedRay.startColor = rayColor;
+        curvedRay.endColor = rayColor;
+    }
+
+    private GameObject CreateFallbackPin(Vector3 pinPosition)
+    {
+        GameObject pinRoot = new GameObject(RuntimePinName);
+        pinRoot.transform.position = pinPosition;
+
+        GameObject stem = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+        stem.name = "Stem";
+        stem.transform.SetParent(pinRoot.transform, false);
+        stem.transform.localPosition = new Vector3(0f, pinStemHeight * 0.5f, 0f);
+        stem.transform.localScale = new Vector3(pinStemRadius * 2f, pinStemHeight * 0.5f, pinStemRadius * 2f);
+        ConfigurePrimitive(stem, pinColor);
+
+        GameObject head = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+        head.name = "Head";
+        head.transform.SetParent(pinRoot.transform, false);
+        head.transform.localPosition = new Vector3(0f, pinStemHeight, 0f);
+        head.transform.localScale = Vector3.one * (pinHeadRadius * 2f);
+        ConfigurePrimitive(head, pinColor);
+
+        return pinRoot;
+    }
+
+    private void ConfigurePrimitive(GameObject primitive, Color color)
+    {
+        Collider primitiveCollider = primitive.GetComponent<Collider>();
+        if (primitiveCollider != null)
+            Destroy(primitiveCollider);
+
+        Renderer primitiveRenderer = primitive.GetComponent<Renderer>();
+        if (primitiveRenderer == null)
+            return;
+
+        Material materialInstance = primitiveRenderer.material;
+        materialInstance.color = color;
     }
 }
