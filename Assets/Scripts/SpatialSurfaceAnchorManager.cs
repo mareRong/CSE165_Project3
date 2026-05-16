@@ -117,7 +117,10 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
                 TransformSurfacePoint(surface),
                 TransformRotation(surface.LocalEulerAngles));
 
-            anchorObject.AddComponent<OVRSpatialAnchor>();
+            if (surface.Kind != SurfaceKind.Floor)
+            {
+                anchorObject.AddComponent<OVRSpatialAnchor>();
+            }
             _createdSurfaces.Add(anchorObject);
 
             GameObject meshObject = new GameObject("PhysicalSpaceMesh_" + SanitizeName(surface.Name));
