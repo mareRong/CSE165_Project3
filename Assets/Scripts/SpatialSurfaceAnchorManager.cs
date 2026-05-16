@@ -134,6 +134,12 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
             {
                 MeshCollider meshCollider = meshObject.AddComponent<MeshCollider>();
                 meshCollider.sharedMesh = meshFilter.sharedMesh;
+
+                if (surface.Kind == SurfaceKind.Floor)
+                {
+                    FloorFovOverlay floorFovOverlay = meshObject.AddComponent<FloorFovOverlay>();
+                    floorFovOverlay.Initialize(Camera.main, meshCollider);
+                }
             }
 
             SpatialSurfaceMarker marker = anchorObject.AddComponent<SpatialSurfaceMarker>();
