@@ -22,10 +22,11 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
     }
 
     [SerializeField] private Transform _origin;
+    [SerializeField] private bool _placeRelativeToHeadset = false;
     [SerializeField] private bool _buildOnStart = true;
     [SerializeField] private bool _rebuildExistingSurfaces = true;
     [SerializeField] private bool _addMeshColliders = true;
-    [SerializeField] private float _floorWorldY = -0.03f;
+    [SerializeField] private float _floorWorldY = -15f;
     [SerializeField] private SurfaceDefinition[] _surfaces =
     {
         new SurfaceDefinition
@@ -95,7 +96,7 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
             ClearSurfaces();
         }
 
-        if (_origin == null)
+        if (_placeRelativeToHeadset && _origin == null)
         {
             Camera mainCamera = Camera.main;
             _origin = mainCamera != null ? mainCamera.transform : transform;
@@ -175,8 +176,9 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
 
     private Vector3 TransformSurfacePoint(SurfaceDefinition surface)
     {
-        Vector3 originPosition = _origin.position;
-        Vector3 flattenedForward = Vector3.ProjectOnPlane(_origin.forward, Vector3.up).normalized;
+        Vector3 originPosition = _origin != null ? _origin.position : Vector3.zero;
+        Vector3 originForward = _origin != null ? _origin.forward : Vector3.forward;
+        Vector3 flattenedForward = Vector3.ProjectOnPlane(originForward, Vector3.up).normalized;
         if (flattenedForward.sqrMagnitude < 0.001f)
         {
             flattenedForward = Vector3.forward;
@@ -191,7 +193,8 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
 
     private Quaternion TransformRotation(Vector3 localEulerAngles)
     {
-        Vector3 flattenedForward = Vector3.ProjectOnPlane(_origin.forward, Vector3.up).normalized;
+        Vector3 originForward = _origin != null ? _origin.forward : Vector3.forward;
+        Vector3 flattenedForward = Vector3.ProjectOnPlane(originForward, Vector3.up).normalized;
         if (flattenedForward.sqrMagnitude < 0.001f)
         {
             flattenedForward = Vector3.forward;
