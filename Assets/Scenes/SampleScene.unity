@@ -161,15 +161,15 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: 032c1dae0ce8a488c84e448e0d859e71, type: 3}
       propertyPath: m_LocalScale.x
-      value: 8
+      value: 1.7
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 032c1dae0ce8a488c84e448e0d859e71, type: 3}
       propertyPath: m_LocalScale.y
-      value: 8
+      value: 1.7
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 032c1dae0ce8a488c84e448e0d859e71, type: 3}
       propertyPath: m_LocalScale.z
-      value: 8
+      value: 1.7
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 032c1dae0ce8a488c84e448e0d859e71, type: 3}
       propertyPath: m_LocalPosition.x
@@ -177,11 +177,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 032c1dae0ce8a488c84e448e0d859e71, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -30
+      value: -15
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 032c1dae0ce8a488c84e448e0d859e71, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 22
+      value: 1.75
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 032c1dae0ce8a488c84e448e0d859e71, type: 3}
       propertyPath: m_LocalRotation.w
@@ -394,8 +394,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   opMode: 1
-  resetHmdPoseOnRelease: 0
-  resetHmdPoseByMiddleMouseButton: 0
+  resetHmdPoseOnRelease: 1
+  resetHmdPoseByMiddleMouseButton: 1
   activateKeys: 3201000031010000
   activateKeyBindings:
   - <Keyboard>/leftCtrl
@@ -485,7 +485,7 @@ MonoBehaviour:
   useRotationTracking: 1
   useIPDInPositionTracking: 1
   resetTrackerOnLoad: 0
-  AllowRecenter: 0
+  AllowRecenter: 1
   LateControllerUpdate: 1
   LateLatching: 0
   controllerDrivenHandPosesType: 0

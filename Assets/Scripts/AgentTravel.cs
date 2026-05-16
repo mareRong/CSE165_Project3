@@ -27,8 +27,6 @@ public class AgentTravel : MonoBehaviour
         if (avatar == null)
             avatar = transform;
 
-        KeepAvatarInWorldSpace();
-
         if (avatarAnimator == null)
             avatarAnimator = avatar.GetComponent<Animator>();
 
@@ -40,8 +38,6 @@ public class AgentTravel : MonoBehaviour
 
     void Update()
     {
-        KeepAvatarInWorldSpace();
-
         if (useNavMesh && navMeshAgent != null && navMeshAgent.isOnNavMesh)
         {
             HandleNavMeshMovement();
@@ -54,8 +50,6 @@ public class AgentTravel : MonoBehaviour
 
     public void SetDestination(Vector3 destination)
     {
-        KeepAvatarInWorldSpace();
-
         targetPosition = destination;
         hasTarget = true;
 
@@ -104,50 +98,6 @@ public class AgentTravel : MonoBehaviour
                 Time.deltaTime * rotationSpeed
             );
         }
-    }
-
-    private void KeepAvatarInWorldSpace()
-    {
-        if (avatar == null)
-        {
-            return;
-        }
-
-        if (avatar.parent == null || !IsTrackingRigTransform(avatar.parent))
-        {
-            return;
-        }
-
-        avatar.SetParent(null, true);
-    }
-
-    private static bool IsTrackingRigTransform(Transform candidate)
-    {
-        Camera mainCamera = Camera.main;
-        if (mainCamera != null
-            && (candidate == mainCamera.transform
-                || candidate.IsChildOf(mainCamera.transform)
-                || mainCamera.transform.IsChildOf(candidate)))
-        {
-            return true;
-        }
-
-        while (candidate != null)
-        {
-            string objectName = candidate.name;
-            if (objectName.Contains("Camera Rig")
-                || objectName.Contains("TrackingSpace")
-                || objectName.Contains("EyeAnchor")
-                || objectName.Contains("HandAnchor")
-                || objectName.Contains("ControllerAnchor"))
-            {
-                return true;
-            }
-
-            candidate = candidate.parent;
-        }
-
-        return false;
     }
 
     private void HandleNavMeshMovement()
