@@ -63,6 +63,7 @@ public class HandTrackingPinning : MonoBehaviour
 
     void Start()
     {
+        TryInitializeAgentTravel();
         TryInitializeHands();
         HidePinningVisuals();
 
@@ -72,6 +73,11 @@ public class HandTrackingPinning : MonoBehaviour
 
     void Update()
     {
+        if (agentTravel == null)
+        {
+            TryInitializeAgentTravel();
+        }
+
         if (handSubsystem == null)
         {
             TryInitializeHands();
@@ -358,6 +364,14 @@ public class HandTrackingPinning : MonoBehaviour
             return;
 
         handSubsystem = manager.activeLoader.GetLoadedSubsystem<XRHandSubsystem>();
+    }
+
+    private void TryInitializeAgentTravel()
+    {
+        if (agentTravel != null)
+            return;
+
+        agentTravel = FindObjectOfType<AgentTravel>();
     }
 
     private bool TryGetPalmPose(XRHand hand, out Pose pose)
