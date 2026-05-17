@@ -35,7 +35,7 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
         {
             Name = "Floor",
             Kind = SurfaceKind.Floor,
-            LocalPosition = new Vector3(0f, 0f, 0.8f),
+            LocalPosition = Vector3.zero,
             LocalEulerAngles = Vector3.zero,
             Size = new Vector2(100f, 100f),
             Color = new Color(0.08f, 0.42f, 1f, 0.32f)
@@ -230,6 +230,18 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
             return _floorWorldY + surface.LocalPosition.y;
         }
 
+        if (TryGetAvatarFootY(out float avatarFootY))
+        {
+            return avatarFootY - Mathf.Max(0f, _floorOffsetBelowAvatar);
+        }
+
+        return _floorWorldY + surface.LocalPosition.y;
+    }
+
+    private static bool TryGetAvatarFootY(out float footY)
+    {
+        footY = 0f;
+
         AgentTravel agentTravel = FindFirstObjectByType<AgentTravel>();
         Transform avatar = agentTravel != null ? agentTravel.avatar : null;
         if (avatar == null && agentTravel != null)
@@ -237,9 +249,26 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
             avatar = agentTravel.transform;
         }
 
-        return avatar != null
-            ? avatar.position.y - Mathf.Max(0f, _floorOffsetBelowAvatar)
-            : _floorWorldY + surface.LocalPosition.y;
+        if (avatar == null)
+        {
+            return false;
+        }
+
+        Renderer[] renderers = avatar.GetComponentsInChildren<Renderer>();
+        if (renderers.Length == 0)
+        {
+            footY = avatar.position.y;
+            return true;
+        }
+
+        Bounds combinedBounds = renderers[0].bounds;
+        for (int i = 1; i < renderers.Length; i++)
+        {
+            combinedBounds.Encapsulate(renderers[i].bounds);
+        }
+
+        footY = combinedBounds.min.y;
+        return true;
     }
 
     private void LockFloorPose(Transform floorAnchor, SurfaceDefinition surface)

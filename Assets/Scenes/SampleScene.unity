@@ -2132,7 +2132,7 @@ MonoBehaviour:
   _surfaces:
   - Name: Floor
     Kind: 0
-    LocalPosition: {x: 0, y: 0, z: 0.8}
+    LocalPosition: {x: 0, y: 0, z: 0}
     LocalEulerAngles: {x: 0, y: 0, z: 0}
     Size: {x: 100, y: 100}
     Color: {r: 0.08, g: 0.42, b: 1, a: 0.32}
