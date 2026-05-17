@@ -2127,6 +2127,8 @@ MonoBehaviour:
   _rebuildExistingSurfaces: 1
   _addMeshColliders: 1
   _floorWorldY: -1.25
+  _lockFloorToAvatarFeet: 1
+  _floorOffsetBelowAvatar: 0.01
   _surfaces:
   - Name: Floor
     Kind: 0

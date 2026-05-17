@@ -27,6 +27,8 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
     [SerializeField] private bool _rebuildExistingSurfaces = true;
     [SerializeField] private bool _addMeshColliders = true;
     [SerializeField] private float _floorWorldY = -1.25f;
+    [SerializeField] private bool _lockFloorToAvatarFeet = true;
+    [SerializeField] private float _floorOffsetBelowAvatar = 0.01f;
     [SerializeField] private SurfaceDefinition[] _surfaces =
     {
         new SurfaceDefinition
@@ -79,12 +81,24 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
     private const string RootName = "[Task 2] Spatial Surface Anchors";
     private readonly List<GameObject> _createdSurfaces = new List<GameObject>();
     private Material _surfaceMaterial;
+    private Transform _floorAnchor;
+    private Vector3 _lockedFloorPosition;
+    private Quaternion _lockedFloorRotation;
+    private bool _hasLockedFloorPose;
 
     private void Start()
     {
         if (_buildOnStart)
         {
             BuildSurfaces();
+        }
+    }
+
+    private void LateUpdate()
+    {
+        if (_floorAnchor != null && _hasLockedFloorPose)
+        {
+            _floorAnchor.SetPositionAndRotation(_lockedFloorPosition, _lockedFloorRotation);
         }
     }
 
@@ -116,6 +130,11 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
             anchorObject.transform.SetPositionAndRotation(
                 TransformSurfacePoint(surface),
                 TransformRotation(surface.LocalEulerAngles));
+
+            if (surface.Kind == SurfaceKind.Floor)
+            {
+                LockFloorPose(anchorObject.transform, surface);
+            }
 
             if (surface.Kind != SurfaceKind.Floor)
             {
@@ -156,6 +175,8 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
         }
 
         _createdSurfaces.Clear();
+        _floorAnchor = null;
+        _hasLockedFloorPose = false;
 
         Transform existingRoot = transform.Find(RootName);
         if (existingRoot != null)
@@ -179,6 +200,14 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
 
     private Vector3 TransformSurfacePoint(SurfaceDefinition surface)
     {
+        if (surface.Kind == SurfaceKind.Floor)
+        {
+            return new Vector3(
+                surface.LocalPosition.x,
+                ResolveFloorWorldY(surface),
+                surface.LocalPosition.z);
+        }
+
         Vector3 originPosition = _origin != null ? _origin.position : Vector3.zero;
         Vector3 originForward = _origin != null ? _origin.forward : Vector3.forward;
         Vector3 flattenedForward = Vector3.ProjectOnPlane(originForward, Vector3.up).normalized;
@@ -192,6 +221,42 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
         Vector3 worldPosition = originPosition + yawOnly * localPlanarOffset;
         worldPosition.y = _floorWorldY + surface.LocalPosition.y;
         return worldPosition;
+    }
+
+    private float ResolveFloorWorldY(SurfaceDefinition surface)
+    {
+        if (!_lockFloorToAvatarFeet)
+        {
+            return _floorWorldY + surface.LocalPosition.y;
+        }
+
+        AgentTravel agentTravel = FindFirstObjectByType<AgentTravel>();
+        Transform avatar = agentTravel != null ? agentTravel.avatar : null;
+        if (avatar == null && agentTravel != null)
+        {
+            avatar = agentTravel.transform;
+        }
+
+        return avatar != null
+            ? avatar.position.y - Mathf.Max(0f, _floorOffsetBelowAvatar)
+            : _floorWorldY + surface.LocalPosition.y;
+    }
+
+    private void LockFloorPose(Transform floorAnchor, SurfaceDefinition surface)
+    {
+        _floorAnchor = floorAnchor;
+        _lockedFloorPosition = new Vector3(
+            surface.LocalPosition.x,
+            ResolveFloorWorldY(surface),
+            surface.LocalPosition.z);
+        _lockedFloorRotation = Quaternion.identity;
+        _hasLockedFloorPose = true;
+        _floorAnchor.SetPositionAndRotation(_lockedFloorPosition, _lockedFloorRotation);
+
+        Debug.Log(
+            $"Task 2 floor locked at world position {_lockedFloorPosition} with size {surface.Size}. " +
+            "It is not parented to the headset and does not use OVRSpatialAnchor.",
+            floorAnchor);
     }
 
     private Quaternion TransformRotation(Vector3 localEulerAngles)
