@@ -1,4 +1,5 @@
 using System.Collections;
+using Meta.XR.EnvironmentDepth;
 using UnityEngine;
 
 public sealed class MixedRealityPassthroughRuntimeConfig : MonoBehaviour
@@ -22,11 +23,13 @@ public sealed class MixedRealityPassthroughRuntimeConfig : MonoBehaviour
     {
         yield return null;
         ConfigurePassthrough();
+        ConfigureEnvironmentDepth();
     }
 
     private void LateUpdate()
     {
         ConfigurePassthrough();
+        ConfigureEnvironmentDepth();
     }
 
     private void ConfigurePassthrough()
@@ -113,5 +116,28 @@ public sealed class MixedRealityPassthroughRuntimeConfig : MonoBehaviour
             cameras[i].clearFlags = CameraClearFlags.SolidColor;
             cameras[i].backgroundColor = Color.clear;
         }
+    }
+
+    private void ConfigureEnvironmentDepth()
+    {
+        if (!EnvironmentDepthManager.IsSupported)
+        {
+            return;
+        }
+
+        EnvironmentDepthManager depthManager = FindAnyObjectByType<EnvironmentDepthManager>();
+        if (depthManager == null)
+        {
+            depthManager = gameObject.AddComponent<EnvironmentDepthManager>();
+        }
+
+        OVRCameraRig cameraRig = FindAnyObjectByType<OVRCameraRig>();
+        if (cameraRig != null && cameraRig.trackingSpace != null)
+        {
+            depthManager.CustomTrackingSpace = cameraRig.trackingSpace;
+        }
+
+        depthManager.OcclusionShadersMode = OcclusionShadersMode.SoftOcclusion;
+        depthManager.enabled = true;
     }
 }

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Meta.XR.EnvironmentDepth;
 using UnityEngine;
 
 public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
@@ -815,7 +816,20 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
             return _surfaceMaterial;
         }
 
-        Shader shader = Shader.Find("Universal Render Pipeline/Unlit");
+        Shader shader = EnvironmentDepthManager.IsSupported
+            ? Shader.Find("EnvironmentDepth/URP/OcclusionUnlit")
+            : null;
+
+        if (shader == null && EnvironmentDepthManager.IsSupported)
+        {
+            shader = Shader.Find("Meta/EnvironmentDepth/Built-in Render Pipeline/OcclusionUnlit");
+        }
+
+        if (shader == null)
+        {
+            shader = Shader.Find("Universal Render Pipeline/Unlit");
+        }
+
         if (shader == null)
         {
             shader = Shader.Find("Unlit/Color");
@@ -858,6 +872,11 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
         if (_surfaceMaterial.HasProperty("_Cull"))
         {
             _surfaceMaterial.SetFloat("_Cull", (float)UnityEngine.Rendering.CullMode.Off);
+        }
+
+        if (_surfaceMaterial.HasProperty("_EnvironmentDepthBias"))
+        {
+            _surfaceMaterial.SetFloat("_EnvironmentDepthBias", 0.04f);
         }
 
         _surfaceMaterial.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
