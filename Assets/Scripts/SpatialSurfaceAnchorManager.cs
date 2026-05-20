@@ -34,7 +34,7 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
     [SerializeField] private bool _useConfiguredWallsWhenDetectionFails = false;
     [SerializeField] private int _detectedRoomWallFetchAttempts = 20;
     [SerializeField] private float _detectedRoomWallFetchRetryDelaySeconds = 0.75f;
-    [SerializeField] private Color _wallOverlayColor = new Color(1f, 0.82f, 0f, 0.72f);
+    [SerializeField] private Color _wallOverlayColor = new Color(1f, 0.82f, 0f, 1f);
     [SerializeField] private string _surfaceLayerName = "Surface";
     [SerializeField] private float _floorWorldY = 0f;
     [SerializeField] private float _configuredWallBaseWorldY = 0f;
@@ -62,7 +62,7 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
             LocalPosition = new Vector3(0f, 1.25f, 2.3f),
             LocalEulerAngles = new Vector3(0f, 180f, 0f),
             Size = new Vector2(3f, 2.5f),
-            Color = new Color(1f, 0.82f, 0f, 0.72f)
+            Color = new Color(1f, 0.82f, 0f, 1f)
         },
         new SurfaceDefinition
         {
@@ -71,7 +71,7 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
             LocalPosition = new Vector3(0f, 1.25f, -0.7f),
             LocalEulerAngles = Vector3.zero,
             Size = new Vector2(3f, 2.5f),
-            Color = new Color(1f, 0.82f, 0f, 0.72f)
+            Color = new Color(1f, 0.82f, 0f, 1f)
         },
         new SurfaceDefinition
         {
@@ -80,7 +80,7 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
             LocalPosition = new Vector3(-1.5f, 1.25f, 0.8f),
             LocalEulerAngles = new Vector3(0f, 90f, 0f),
             Size = new Vector2(3f, 2.5f),
-            Color = new Color(1f, 0.82f, 0f, 0.72f)
+            Color = new Color(1f, 0.82f, 0f, 1f)
         },
         new SurfaceDefinition
         {
@@ -89,7 +89,7 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
             LocalPosition = new Vector3(1.5f, 1.25f, 0.8f),
             LocalEulerAngles = new Vector3(0f, -90f, 0f),
             Size = new Vector2(3f, 2.5f),
-            Color = new Color(1f, 0.82f, 0f, 0.72f)
+            Color = new Color(1f, 0.82f, 0f, 1f)
         }
     };
 
@@ -492,7 +492,7 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
         };
 
         MeshFilter meshFilter = meshObject.AddComponent<MeshFilter>();
-        meshFilter.sharedMesh = CreateSurfaceMesh(visualDefinition);
+        meshFilter.sharedMesh = CreateSurfaceMesh(visualDefinition, false);
 
         MeshRenderer meshRenderer = meshObject.AddComponent<MeshRenderer>();
         meshRenderer.sharedMaterial = CreateSurfaceMaterialInstance(ResolveSurfaceColor(visualDefinition));
@@ -500,7 +500,7 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
         if (_addMeshColliders)
         {
             MeshCollider meshCollider = meshObject.AddComponent<MeshCollider>();
-            meshCollider.sharedMesh = meshFilter.sharedMesh;
+            meshCollider.sharedMesh = CreateSurfaceMesh(visualDefinition, true);
         }
     }
 
@@ -737,7 +737,7 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
         return Quaternion.LookRotation(flattenedForward, Vector3.up);
     }
 
-    private static Mesh CreateSurfaceMesh(SurfaceDefinition surface)
+    private static Mesh CreateSurfaceMesh(SurfaceDefinition surface, bool doubleSided)
     {
         float halfWidth = Mathf.Max(0.01f, surface.Size.x) * 0.5f;
         float halfHeight = Mathf.Max(0.01f, surface.Size.y) * 0.5f;
@@ -764,17 +764,25 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
             };
         }
 
-        Mesh mesh = new Mesh
-        {
-            name = "Task2_" + SanitizeName(surface.Name) + "_Mesh",
-            vertices = vertices,
-            triangles = new[]
+        int[] triangles = doubleSided
+            ? new[]
             {
                 0, 1, 2,
                 0, 2, 3,
                 2, 1, 0,
                 3, 2, 0
-            },
+            }
+            : new[]
+            {
+                0, 1, 2,
+                0, 2, 3
+            };
+
+        Mesh mesh = new Mesh
+        {
+            name = "Task2_" + SanitizeName(surface.Name) + "_Mesh",
+            vertices = vertices,
+            triangles = triangles,
             uv = new[]
             {
                 new Vector2(0f, 0f),
