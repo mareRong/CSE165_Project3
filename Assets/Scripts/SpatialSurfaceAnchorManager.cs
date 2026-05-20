@@ -33,9 +33,9 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
     [SerializeField] private bool _useConfiguredWallsWhenDetectionFails = true;
     [SerializeField] private Color _wallOverlayColor = new Color(1f, 0.82f, 0f, 0.72f);
     [SerializeField] private string _surfaceLayerName = "Surface";
-    [SerializeField] private float _floorWorldY = -10f;
+    [SerializeField] private float _floorWorldY = -12f;
     [SerializeField] private float _configuredWallBaseWorldY = 0f;
-    [SerializeField] private bool _centerFloorUnderInitialHeadset = true;
+    [SerializeField] private bool _centerFloorUnderInitialHeadset = false;
     [SerializeField] private bool _lockFloorToAvatarFeet = false;
     [SerializeField] private bool _waitForTrackedHeadsetBeforeLockingFloor = false;
     [SerializeField] private float _floorLockDelay = 0f;
@@ -48,7 +48,7 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
             Kind = SurfaceKind.Floor,
             LocalPosition = Vector3.zero,
             LocalEulerAngles = Vector3.zero,
-            Size = new Vector2(100f, 100f),
+            Size = new Vector2(200f, 200f),
             Color = new Color(0.08f, 0.42f, 1f, 0.32f)
         },
         new SurfaceDefinition

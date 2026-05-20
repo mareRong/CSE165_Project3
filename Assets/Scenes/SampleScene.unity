@@ -2132,9 +2132,9 @@ MonoBehaviour:
   _useConfiguredWallsWhenDetectionFails: 1
   _wallOverlayColor: {r: 1, g: 0.82, b: 0, a: 0.72}
   _surfaceLayerName: Surface
-  _floorWorldY: -10
+  _floorWorldY: -12
   _configuredWallBaseWorldY: 0
-  _centerFloorUnderInitialHeadset: 1
+  _centerFloorUnderInitialHeadset: 0
   _lockFloorToAvatarFeet: 0
   _waitForTrackedHeadsetBeforeLockingFloor: 0
   _floorLockDelay: 0
@@ -2144,7 +2144,7 @@ MonoBehaviour:
     Kind: 0
     LocalPosition: {x: 0, y: 0, z: 0}
     LocalEulerAngles: {x: 0, y: 0, z: 0}
-    Size: {x: 100, y: 100}
+    Size: {x: 200, y: 200}
     Color: {r: 0.08, g: 0.42, b: 1, a: 0.32}
   - Name: Front Wall
     Kind: 1
