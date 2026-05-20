@@ -268,6 +268,12 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
 
     private async Task LoadDetectedRoomWallsAsync(Transform root)
     {
+        if (!await EnsureScenePermissionAsync())
+        {
+            ReportStatus("Scene permission is not granted. Showing configured placeholder walls.");
+            return;
+        }
+
         int maxAttempts = Mathf.Max(1, _detectedRoomWallFetchAttempts);
         int wallCount = 0;
 
@@ -355,6 +361,57 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
     {
         int delayMilliseconds = Mathf.RoundToInt(Mathf.Max(0.05f, _detectedRoomWallFetchRetryDelaySeconds) * 1000f);
         await Task.Delay(delayMilliseconds);
+    }
+
+    private async Task<bool> EnsureScenePermissionAsync()
+    {
+#if UNITY_ANDROID && !UNITY_EDITOR
+        if (UnityEngine.Android.Permission.HasUserAuthorizedPermission(OVRPermissionsRequester.ScenePermission))
+        {
+            ReportStatus("Scene permission granted. Querying room layout...");
+            return true;
+        }
+
+        ReportStatus("Scene permission is missing. Requesting permission...");
+        TaskCompletionSource<bool> permissionResult = new TaskCompletionSource<bool>();
+        UnityEngine.Android.PermissionCallbacks callbacks = new UnityEngine.Android.PermissionCallbacks();
+        callbacks.PermissionGranted += permissionName =>
+        {
+            if (permissionName == OVRPermissionsRequester.ScenePermission)
+            {
+                permissionResult.TrySetResult(true);
+            }
+        };
+        callbacks.PermissionDenied += permissionName =>
+        {
+            if (permissionName == OVRPermissionsRequester.ScenePermission)
+            {
+                permissionResult.TrySetResult(false);
+            }
+        };
+        callbacks.PermissionDeniedAndDontAskAgain += permissionName =>
+        {
+            if (permissionName == OVRPermissionsRequester.ScenePermission)
+            {
+                permissionResult.TrySetResult(false);
+            }
+        };
+
+        UnityEngine.Android.Permission.RequestUserPermission(OVRPermissionsRequester.ScenePermission, callbacks);
+        Task completedTask = await Task.WhenAny(permissionResult.Task, Task.Delay(10000));
+        bool granted = completedTask == permissionResult.Task && permissionResult.Task.Result;
+        if (!granted)
+        {
+            granted = UnityEngine.Android.Permission.HasUserAuthorizedPermission(OVRPermissionsRequester.ScenePermission);
+        }
+
+        ReportStatus(granted
+            ? "Scene permission granted. Querying room layout..."
+            : "Scene permission was not granted. Enable Spatial Data/Scene permission for this app.");
+        return granted;
+#else
+        return true;
+#endif
     }
 
     private static bool HasReliableTrackingSpace()
