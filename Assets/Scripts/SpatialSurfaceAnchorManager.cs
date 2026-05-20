@@ -31,7 +31,7 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
     [SerializeField] private bool _showConfiguredWallsWhileDetecting = false;
     [SerializeField] private bool _requestSceneCaptureIfNoRoom = false;
     [SerializeField] private bool _useConfiguredWallsWhenDetectionFails = false;
-    [SerializeField] private int _detectedRoomWallFetchAttempts = 8;
+    [SerializeField] private int _detectedRoomWallFetchAttempts = 20;
     [SerializeField] private float _detectedRoomWallFetchRetryDelaySeconds = 0.75f;
     [SerializeField] private Color _wallOverlayColor = new Color(1f, 0.82f, 0f, 0.72f);
     [SerializeField] private string _surfaceLayerName = "Surface";
@@ -335,7 +335,7 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
     private static bool HasReliableTrackingSpace()
     {
         Camera mainCamera = Camera.main;
-        if (mainCamera == null || mainCamera.transform.position.sqrMagnitude <= 0.001f)
+        if (mainCamera == null)
         {
             return false;
         }
