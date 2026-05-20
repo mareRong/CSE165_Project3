@@ -514,14 +514,18 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
         bool failed = OVRManager.HasInsightPassthroughInitFailed();
         bool pending = OVRManager.IsInsightPassthroughInitPending();
         bool requested = OVRManager.instance != null && OVRManager.instance.isInsightPassthroughEnabled;
+        var initState = OVRPlugin.GetInsightPassthroughInitializationState();
+        int layerCount = FindObjectsByType<OVRPassthroughLayer>(
+            FindObjectsInactive.Exclude,
+            FindObjectsSortMode.None).Length;
 
         Debug.Log(
-            $"{prefix}: requested={requested}, supported={supported}, initialized={initialized}, pending={pending}, failed={failed}.",
+            $"{prefix}: requested={requested}, supported={supported}, initialized={initialized}, pending={pending}, failed={failed}, initState={initState}, activeLayers={layerCount}.",
             this);
 
         if (!initialized)
         {
-            ReportStatus($"{prefix}: passthrough not visible yet. supported={supported}, pending={pending}, failed={failed}");
+            ReportStatus($"{prefix}: passthrough not visible yet. supported={supported}, pending={pending}, failed={failed}, init={initState}, layers={layerCount}");
         }
     }
 
