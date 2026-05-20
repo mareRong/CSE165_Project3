@@ -2132,7 +2132,7 @@ MonoBehaviour:
   _useConfiguredWallsWhenDetectionFails: 0
   _detectedRoomWallFetchAttempts: 20
   _detectedRoomWallFetchRetryDelaySeconds: 0.75
-  _wallOverlayColor: {r: 1, g: 0.82, b: 0, a: 0.72}
+  _wallOverlayColor: {r: 1, g: 0.82, b: 0, a: 0.28}
   _surfaceLayerName: Surface
   _floorWorldY: 0
   _configuredWallBaseWorldY: 0
@@ -2148,31 +2148,31 @@ MonoBehaviour:
     LocalPosition: {x: 0, y: 0, z: 0}
     LocalEulerAngles: {x: 0, y: 0, z: 0}
     Size: {x: 200, y: 200}
-    Color: {r: 0.08, g: 0.42, b: 1, a: 0.32}
+    Color: {r: 0.08, g: 0.42, b: 1, a: 0.18}
   - Name: Front Wall
     Kind: 1
     LocalPosition: {x: 0, y: 1.25, z: 2.3}
     LocalEulerAngles: {x: 0, y: 180, z: 0}
     Size: {x: 3, y: 2.5}
-    Color: {r: 1, g: 0.82, b: 0, a: 0.72}
+    Color: {r: 1, g: 0.82, b: 0, a: 0.28}
   - Name: Back Wall
     Kind: 1
     LocalPosition: {x: 0, y: 1.25, z: -0.7}
     LocalEulerAngles: {x: 0, y: 0, z: 0}
     Size: {x: 3, y: 2.5}
-    Color: {r: 1, g: 0.82, b: 0, a: 0.72}
+    Color: {r: 1, g: 0.82, b: 0, a: 0.28}
   - Name: Left Wall
     Kind: 1
     LocalPosition: {x: -1.5, y: 1.25, z: 0.8}
     LocalEulerAngles: {x: 0, y: 90, z: 0}
     Size: {x: 3, y: 2.5}
-    Color: {r: 1, g: 0.82, b: 0, a: 0.72}
+    Color: {r: 1, g: 0.82, b: 0, a: 0.28}
   - Name: Right Wall
     Kind: 1
     LocalPosition: {x: 1.5, y: 1.25, z: 0.8}
     LocalEulerAngles: {x: 0, y: -90, z: 0}
     Size: {x: 3, y: 2.5}
-    Color: {r: 1, g: 0.82, b: 0, a: 0.72}
+    Color: {r: 1, g: 0.82, b: 0, a: 0.28}
 --- !u!1 &2144580149
 GameObject:
   m_ObjectHideFlags: 0
