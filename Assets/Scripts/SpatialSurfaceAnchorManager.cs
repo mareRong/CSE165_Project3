@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using TMPro;
 using UnityEngine;
 
 public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
@@ -33,6 +34,8 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
     [SerializeField] private bool _useConfiguredWallsWhenDetectionFails = true;
     [SerializeField] private int _detectedRoomWallFetchAttempts = 20;
     [SerializeField] private float _detectedRoomWallFetchRetryDelaySeconds = 0.75f;
+    [SerializeField] private bool _showDebugStatus = true;
+    [SerializeField] private TextMeshProUGUI _debugStatusText;
     [SerializeField] private Color _wallOverlayColor = new Color(1f, 0.82f, 0f, 0.72f);
     [SerializeField] private string _surfaceLayerName = "Surface";
     [SerializeField] private float _floorWorldY = 0f;
@@ -135,6 +138,9 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
     [ContextMenu("Build Task 2 Surfaces")]
     public void BuildSurfaces()
     {
+        ResolveDebugStatusText();
+        ReportStatus("Building spatial floor and wall anchors...");
+
         if (_rebuildExistingSurfaces)
         {
             ClearSurfaces();
@@ -252,6 +258,7 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
         catch (Exception exception)
         {
             Debug.LogWarning($"Task 2 wall detection failed, using configured yellow walls instead. {exception}", this);
+            ReportStatus("Room wall detection threw an exception. Showing configured yellow walls.");
             if (root != null && _useConfiguredWallsWhenDetectionFails && _configuredWallAnchors.Count == 0)
             {
                 CreateConfiguredWallAnchors(root);
@@ -268,7 +275,9 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
         {
             if (!HasReliableTrackingSpace())
             {
-                Debug.Log($"Waiting for reliable headset tracking before loading detected room walls. Attempt {attempt}/{maxAttempts}.", this);
+                string trackingMessage = $"Waiting for reliable headset tracking before loading detected room walls. Attempt {attempt}/{maxAttempts}.";
+                Debug.Log(trackingMessage, this);
+                ReportStatus(trackingMessage);
                 await DelayDetectedRoomWallRetry();
                 continue;
             }
@@ -280,20 +289,30 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
                     SingleComponentType = typeof(OVRRoomLayout),
                 });
 
+            Debug.Log(
+                $"Room layout fetch attempt {attempt}/{maxAttempts}: success={roomFetchResult.Success}, rooms={rooms.Count}.",
+                this);
+
             if ((!roomFetchResult.Success || rooms.Count == 0) && _requestSceneCaptureIfNoRoom)
             {
+                ReportStatus($"No room layout yet. Requesting headset scene setup... ({attempt}/{maxAttempts})");
                 bool sceneCaptured = await OVRScene.RequestSpaceSetup();
+                Debug.Log($"Scene setup request returned {sceneCaptured} on attempt {attempt}/{maxAttempts}.", this);
                 if (sceneCaptured)
                 {
                     roomFetchResult = await OVRAnchor.FetchAnchorsAsync(rooms, new OVRAnchor.FetchOptions
                     {
                         SingleComponentType = typeof(OVRRoomLayout),
                     });
+                    Debug.Log(
+                        $"Room layout fetch after scene setup attempt {attempt}/{maxAttempts}: success={roomFetchResult.Success}, rooms={rooms.Count}.",
+                        this);
                 }
             }
 
             if (roomFetchResult.Success)
             {
+                ReportStatus($"Found {rooms.Count} room layout anchor(s). Loading walls... ({attempt}/{maxAttempts})");
                 for (int roomIndex = 0; roomIndex < rooms.Count; roomIndex++)
                 {
                     wallCount += await CreateDetectedRoomWallAnchors(root, rooms[roomIndex], wallCount);
@@ -304,25 +323,31 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
             {
                 RemoveConfiguredWallAnchors();
                 Debug.Log($"Task 2 created {wallCount} detected yellow wall anchors from the room scene model on attempt {attempt}/{maxAttempts}.", this);
+                ReportStatus($"Detected room walls: {wallCount}. Placeholder walls removed.");
                 return;
             }
 
-            Debug.Log($"Detected room wall fetch returned no usable walls on attempt {attempt}/{maxAttempts}.", this);
+            string retryMessage = $"Detected room wall fetch returned no usable walls on attempt {attempt}/{maxAttempts}.";
+            Debug.Log(retryMessage, this);
+            ReportStatus(retryMessage);
             await DelayDetectedRoomWallRetry();
         }
 
         if (_configuredWallAnchors.Count > 0)
         {
             Debug.Log($"Room wall detection did not return any walls, so Task 2 is keeping {_configuredWallAnchors.Count} configured yellow wall anchors.", this);
+            ReportStatus("No detected room walls. Showing configured placeholder walls.");
         }
         else if (_useConfiguredWallsWhenDetectionFails)
         {
             wallCount = CreateConfiguredWallAnchors(root);
             Debug.Log($"No detected room walls were available, so Task 2 created {wallCount} configured yellow wall anchors.", this);
+            ReportStatus($"No detected room walls. Created {wallCount} configured placeholder walls.");
         }
         else
         {
             Debug.LogWarning("No detected room walls were available, and configured fallback walls are disabled to avoid showing walls that do not match the headset room layout.", this);
+            ReportStatus("No detected room walls, and placeholder fallback is disabled.");
         }
     }
 
@@ -341,6 +366,43 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
         }
 
         return OVRManager.tracker == null || OVRManager.tracker.isPositionTracked;
+    }
+
+    private void ResolveDebugStatusText()
+    {
+        if (!_showDebugStatus || _debugStatusText != null)
+        {
+            return;
+        }
+
+        TextMeshProUGUI[] textComponents = FindObjectsByType<TextMeshProUGUI>(
+            FindObjectsInactive.Include,
+            FindObjectsSortMode.None);
+        for (int i = 0; i < textComponents.Length; i++)
+        {
+            if (textComponents[i].name == "Status Message")
+            {
+                _debugStatusText = textComponents[i];
+                return;
+            }
+        }
+    }
+
+    private void ReportStatus(string message)
+    {
+        if (!_showDebugStatus)
+        {
+            return;
+        }
+
+        ResolveDebugStatusText();
+        if (_debugStatusText != null)
+        {
+            _debugStatusText.gameObject.SetActive(true);
+            _debugStatusText.text = message;
+        }
+
+        Debug.Log($"SpatialSurfaceAnchorManager status: {message}", this);
     }
 
     private int CreateConfiguredWallAnchors(Transform root)
@@ -377,17 +439,22 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
     {
         if (!room.TryGetComponent(out OVRRoomLayout roomLayout))
         {
+            Debug.LogWarning($"Room anchor {room.Uuid} does not have OVRRoomLayout.", this);
             return 0;
         }
 
         if (!roomLayout.TryGetRoomLayout(out _, out _, out Guid[] wallUuids) || wallUuids == null || wallUuids.Length == 0)
         {
+            Debug.LogWarning($"Room anchor {room.Uuid} did not provide wall UUIDs.", this);
             return 0;
         }
 
         HashSet<Guid> wallUuidSet = new HashSet<Guid>(wallUuids);
         List<OVRAnchor> roomAnchors = new List<OVRAnchor>();
         OVRResult<List<OVRAnchor>, OVRAnchor.FetchResult> roomAnchorResult = await roomLayout.FetchAnchorsAsync(roomAnchors);
+        Debug.Log(
+            $"Room {room.Uuid} layout has {wallUuids.Length} wall UUID(s); fetched {roomAnchors.Count} room anchor(s), success={roomAnchorResult.Success}.",
+            this);
         if (!roomAnchorResult.Success)
         {
             return 0;
@@ -415,12 +482,14 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
     {
         if (!wallAnchor.TryGetComponent(out OVRLocatable locatable))
         {
+            Debug.LogWarning($"Detected wall anchor {wallAnchor.Uuid} has no OVRLocatable.", this);
             return false;
         }
 
         await locatable.SetEnabledAsync(true);
         if (!locatable.TryGetSceneAnchorPose(out OVRLocatable.TrackingSpacePose pose))
         {
+            Debug.LogWarning($"Detected wall anchor {wallAnchor.Uuid} did not provide a scene anchor pose.", this);
             return false;
         }
 
@@ -429,11 +498,13 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
         Quaternion? worldRotation = pose.ComputeWorldRotation(trackingSpace);
         if (!worldPosition.HasValue || !worldRotation.HasValue)
         {
+            Debug.LogWarning($"Detected wall anchor {wallAnchor.Uuid} pose could not be converted to world space.", this);
             return false;
         }
 
         if (!wallAnchor.TryGetComponent(out OVRBounded2D bounds2D) || !bounds2D.IsEnabled)
         {
+            Debug.LogWarning($"Detected wall anchor {wallAnchor.Uuid} has no enabled OVRBounded2D bounds.", this);
             return false;
         }
 
@@ -442,6 +513,10 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
             Mathf.Max(0.01f, wallBounds.size.x),
             Mathf.Max(0.01f, wallBounds.size.y));
         string wallName = $"Detected Wall {wallNumber}";
+
+        Debug.Log(
+            $"{wallName}: uuid={wallAnchor.Uuid}, worldPosition={worldPosition.Value}, worldRotation={worldRotation.Value.eulerAngles}, size={wallSize}, boundsCenter={wallBounds.center}.",
+            this);
 
         GameObject anchorObject = new GameObject("SpatialAnchor_" + SanitizeName(wallName));
         anchorObject.transform.SetParent(root, false);

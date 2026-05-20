@@ -504,7 +504,7 @@ MonoBehaviour:
   requestBodyTrackingPermissionOnStartup: 0
   requestFaceTrackingPermissionOnStartup: 0
   requestEyeTrackingPermissionOnStartup: 0
-  requestScenePermissionOnStartup: 0
+  requestScenePermissionOnStartup: 1
   requestRecordAudioPermissionOnStartup: 0
   requestPassthroughCameraAccessPermissionOnStartup: 0
   _localDimming: 1
@@ -2132,6 +2132,8 @@ MonoBehaviour:
   _useConfiguredWallsWhenDetectionFails: 1
   _detectedRoomWallFetchAttempts: 20
   _detectedRoomWallFetchRetryDelaySeconds: 0.75
+  _showDebugStatus: 1
+  _debugStatusText: {fileID: 1950750448}
   _wallOverlayColor: {r: 1, g: 0.82, b: 0, a: 0.72}
   _surfaceLayerName: Surface
   _floorWorldY: 0
