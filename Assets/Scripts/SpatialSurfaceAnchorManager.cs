@@ -35,6 +35,8 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
     [SerializeField] private int _detectedRoomWallFetchAttempts = 20;
     [SerializeField] private float _detectedRoomWallFetchRetryDelaySeconds = 0.75f;
     [SerializeField] private Color _wallOverlayColor = new Color(1f, 0.82f, 0f, 0.72f);
+    [SerializeField] private float _detectedWallBottomPadding = 0.75f;
+    [SerializeField] private float _detectedWallTopPadding = 0.08f;
     [SerializeField] private string _surfaceLayerName = "Surface";
     [SerializeField] private float _floorWorldY = 0f;
     [SerializeField] private float _configuredWallBaseWorldY = 0f;
@@ -438,7 +440,7 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
             return false;
         }
 
-        Rect wallBounds = bounds2D.BoundingBox;
+        Rect wallBounds = ExpandDetectedWallBounds(bounds2D.BoundingBox);
         string wallName = $"Detected Wall {wallNumber}";
 
         GameObject anchorObject = new GameObject("SpatialAnchor_" + SanitizeName(wallName));
@@ -457,6 +459,15 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
         SpatialSurfaceMarker marker = anchorObject.AddComponent<SpatialSurfaceMarker>();
         marker.Initialize(wallName, SurfaceKind.Wall, wallSize);
         return true;
+    }
+
+    private Rect ExpandDetectedWallBounds(Rect wallBounds)
+    {
+        float bottomPadding = Mathf.Max(0f, _detectedWallBottomPadding);
+        float topPadding = Mathf.Max(0f, _detectedWallTopPadding);
+        wallBounds.yMin -= bottomPadding;
+        wallBounds.yMax += topPadding;
+        return wallBounds;
     }
 
     private Transform ResolveTrackingSpace()
