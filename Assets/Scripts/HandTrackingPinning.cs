@@ -9,6 +9,7 @@ public class HandTrackingPinning : MonoBehaviour
     private const string RuntimeRayName = "RuntimeCurvedRay";
     private const string RuntimePreviewName = "RuntimePinPreview";
     private const string RuntimePinName = "RuntimePin";
+    private const string SurfaceLayerName = "Surface";
 
     [Header("Travel Script")]
     public AgentTravel agentTravel;
@@ -56,6 +57,7 @@ public class HandTrackingPinning : MonoBehaviour
     private bool wasPinching = false;
 
     private Vector3 currentRayEndPoint;
+    private Vector3 currentRayHitNormal = Vector3.up;
     private bool hasValidRayHit = false;
 
     private GameObject currentPin;
@@ -230,7 +232,7 @@ public class HandTrackingPinning : MonoBehaviour
 
         Vector3[] points = new Vector3[raySegments];
         hasValidRayHit = false;
-        LayerMask raycastMask = groundLayer.value == 0 ? Physics.DefaultRaycastLayers : groundLayer;
+        LayerMask raycastMask = ResolveGroundRaycastMask();
 
         for (int i = 0; i < raySegments; i++)
         {
@@ -247,9 +249,10 @@ public class HandTrackingPinning : MonoBehaviour
                 Vector3 direction = point - previousPoint;
                 float distance = direction.magnitude;
 
-                if (Physics.Raycast(previousPoint, direction.normalized, out RaycastHit hit, distance, raycastMask))
+                if (TryRaycastGroundSegment(previousPoint, direction.normalized, distance, raycastMask, out RaycastHit hit))
                 {
                     currentRayEndPoint = hit.point;
+                    currentRayHitNormal = ResolveGroundNormal(hit.normal);
                     hasValidRayHit = true;
 
                     for (int j = i; j < raySegments; j++)
@@ -274,10 +277,85 @@ public class HandTrackingPinning : MonoBehaviour
         if (pinPreviewCircle != null && hasValidRayHit)
         {
             pinPreviewCircle.SetActive(true);
-            pinPreviewCircle.transform.position = currentRayEndPoint + Vector3.up * 0.002f;
+            pinPreviewCircle.transform.position = currentRayEndPoint + currentRayHitNormal * 0.002f;
+            pinPreviewCircle.transform.rotation = Quaternion.FromToRotation(Vector3.up, currentRayHitNormal);
 
             PulsePreviewCircle();
         }
+    }
+
+    private LayerMask ResolveGroundRaycastMask()
+    {
+        int mask = groundLayer.value == 0 ? Physics.DefaultRaycastLayers : groundLayer.value;
+        int surfaceLayer = LayerMask.NameToLayer(SurfaceLayerName);
+        if (surfaceLayer >= 0)
+        {
+            mask |= 1 << surfaceLayer;
+        }
+
+        return mask;
+    }
+
+    private static bool TryRaycastGroundSegment(
+        Vector3 origin,
+        Vector3 direction,
+        float distance,
+        LayerMask raycastMask,
+        out RaycastHit bestHit)
+    {
+        RaycastHit[] hits = Physics.RaycastAll(
+            origin,
+            direction,
+            distance,
+            raycastMask,
+            QueryTriggerInteraction.Ignore);
+
+        bestHit = new RaycastHit();
+        float bestDistance = float.PositiveInfinity;
+
+        for (int i = 0; i < hits.Length; i++)
+        {
+            RaycastHit hit = hits[i];
+            if (hit.collider == null || !IsGroundHit(hit))
+            {
+                continue;
+            }
+
+            if (hit.distance < bestDistance)
+            {
+                bestDistance = hit.distance;
+                bestHit = hit;
+            }
+        }
+
+        return bestDistance < float.PositiveInfinity;
+    }
+
+    private static bool IsGroundHit(RaycastHit hit)
+    {
+        SpatialSurfaceMarker marker = hit.collider.GetComponentInParent<SpatialSurfaceMarker>();
+        if (marker != null)
+        {
+            return marker.SurfaceKind == SpatialSurfaceAnchorManager.SurfaceKind.Floor;
+        }
+
+        return hit.normal.y > 0.5f;
+    }
+
+    private static Vector3 ResolveGroundNormal(Vector3 normal)
+    {
+        if (normal.sqrMagnitude < 0.001f)
+        {
+            return Vector3.up;
+        }
+
+        normal.Normalize();
+        if (normal.y < 0f)
+        {
+            normal = -normal;
+        }
+
+        return normal;
     }
 
     private void PulsePreviewCircle()
