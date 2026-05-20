@@ -33,10 +33,11 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
     [SerializeField] private bool _useConfiguredWallsWhenDetectionFails = true;
     [SerializeField] private Color _wallOverlayColor = new Color(1f, 0.82f, 0f, 0.72f);
     [SerializeField] private string _surfaceLayerName = "Surface";
-    [SerializeField] private float _floorWorldY = -12f;
+    [SerializeField] private float _floorWorldY = 0f;
     [SerializeField] private float _configuredWallBaseWorldY = 0f;
     [SerializeField] private bool _centerFloorUnderInitialHeadset = false;
-    [SerializeField] private bool _lockFloorToAvatarFeet = false;
+    [SerializeField] private bool _lockFloorToAvatarFeet = true;
+    [SerializeField] private bool _spatiallyAnchorConfiguredFloor = true;
     [SerializeField] private bool _waitForTrackedHeadsetBeforeLockingFloor = false;
     [SerializeField] private float _floorLockDelay = 0f;
     [SerializeField] private float _floorOffsetBelowAvatar = 0.01f;
@@ -123,7 +124,7 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
             TryLockFloorPose(_floorAnchor, _pendingFloorLockSurface);
         }
 
-        if (_floorAnchor != null && _hasLockedFloorPose)
+        if (_floorAnchor != null && _hasLockedFloorPose && !_spatiallyAnchorConfiguredFloor)
         {
             _floorAnchor.SetPositionAndRotation(_lockedFloorPosition, _lockedFloorRotation);
         }
@@ -216,6 +217,7 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
         {
             _floorAnchor = anchorObject.transform;
             _pendingFloorLockSurface = surface;
+            AddSpatialAnchorIfEnabled(anchorObject);
             TryLockFloorPose(anchorObject.transform, surface);
         }
         else
@@ -475,6 +477,16 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
         }
     }
 
+    private void AddSpatialAnchorIfEnabled(GameObject anchorObject)
+    {
+        if (!_spatiallyAnchorConfiguredFloor || anchorObject.GetComponent<OVRSpatialAnchor>() != null)
+        {
+            return;
+        }
+
+        anchorObject.AddComponent<OVRSpatialAnchor>();
+    }
+
     private Vector3 TransformSurfacePoint(SurfaceDefinition surface)
     {
         if (surface.Kind == SurfaceKind.Floor)
@@ -609,7 +621,9 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
 
         Debug.Log(
             $"Task 2 floor locked at world position {_lockedFloorPosition} with size {surface.Size}. " +
-            "It is not parented to the headset and does not use OVRSpatialAnchor.",
+            (_spatiallyAnchorConfiguredFloor
+                ? "It is mapped with OVRSpatialAnchor so the headset pose can move independently."
+                : "It is not parented to the headset and does not use OVRSpatialAnchor."),
             floorAnchor);
     }
 
