@@ -816,7 +816,12 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
             return _surfaceMaterial;
         }
 
-        Shader shader = Shader.Find("Oculus/Unlit Transparent Color");
+        Shader shader = Shader.Find("Task2/Transparent Color");
+        if (shader == null)
+        {
+            shader = Shader.Find("Oculus/Unlit Transparent Color");
+        }
+
         if (shader == null)
         {
             shader = Shader.Find("Oculus/UnlitTransparent");
