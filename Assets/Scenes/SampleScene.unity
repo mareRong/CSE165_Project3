@@ -2139,7 +2139,7 @@ MonoBehaviour:
   _spatiallyAnchorConfiguredFloor: 1
   _waitForTrackedHeadsetBeforeLockingFloor: 0
   _floorLockDelay: 0
-  _floorOffsetBelowAvatar: 0.01
+  _floorOffsetBelowAvatar: 0.03
   _surfaces:
   - Name: Floor
     Kind: 0

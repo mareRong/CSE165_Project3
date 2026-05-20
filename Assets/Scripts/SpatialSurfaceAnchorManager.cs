@@ -40,7 +40,7 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
     [SerializeField] private bool _spatiallyAnchorConfiguredFloor = true;
     [SerializeField] private bool _waitForTrackedHeadsetBeforeLockingFloor = false;
     [SerializeField] private float _floorLockDelay = 0f;
-    [SerializeField] private float _floorOffsetBelowAvatar = 0.01f;
+    [SerializeField] private float _floorOffsetBelowAvatar = 0.03f;
     [SerializeField] private SurfaceDefinition[] _surfaces =
     {
         new SurfaceDefinition
@@ -727,7 +727,13 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
         {
             name = "Task2_" + SanitizeName(surface.Name) + "_Mesh",
             vertices = vertices,
-            triangles = new[] { 0, 1, 2, 0, 2, 3 },
+            triangles = new[]
+            {
+                0, 1, 2,
+                0, 2, 3,
+                2, 1, 0,
+                3, 2, 0
+            },
             uv = new[]
             {
                 new Vector2(0f, 0f),
