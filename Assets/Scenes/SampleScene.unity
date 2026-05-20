@@ -2133,8 +2133,6 @@ MonoBehaviour:
   _detectedRoomWallFetchAttempts: 20
   _detectedRoomWallFetchRetryDelaySeconds: 0.75
   _wallOverlayColor: {r: 1, g: 0.82, b: 0, a: 0.72}
-  _detectedWallBottomPadding: 0.75
-  _detectedWallTopPadding: 0.08
   _surfaceLayerName: Surface
   _floorWorldY: 0
   _configuredWallBaseWorldY: 0
