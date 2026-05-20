@@ -678,10 +678,6 @@ MonoBehaviour:
   pinStemRadius: 0.012
   pinHeadRadius: 0.04
   pinColor: {r: 1, g: 0.25, b: 0.2, a: 1}
-  createTemporaryTestFloor: 1
-  testFloorPosition: {x: 0, y: 0, z: 2}
-  testFloorScale: {x: 2, y: 1, z: 2}
-  testFloorColor: {r: 0.3, g: 0.32, b: 0.36, a: 1}
   statusText: {fileID: 1950750448}
   statusMessageDuration: 3
 --- !u!1 &429530065
@@ -2130,114 +2126,53 @@ MonoBehaviour:
   _buildOnStart: 1
   _rebuildExistingSurfaces: 1
   _addMeshColliders: 1
-  _floorWorldY: -1.24
+  _useDetectedRoomWalls: 1
+  _showConfiguredWallsWhileDetecting: 0
+  _requestSceneCaptureIfNoRoom: 0
+  _useConfiguredWallsWhenDetectionFails: 0
+  _detectedRoomWallFetchAttempts: 8
+  _detectedRoomWallFetchRetryDelaySeconds: 0.75
+  _wallOverlayColor: {r: 1, g: 0.82, b: 0, a: 0.72}
+  _surfaceLayerName: Surface
+  _floorWorldY: 0
+  _configuredWallBaseWorldY: 0
+  _centerFloorUnderInitialHeadset: 0
+  _lockFloorToAvatarFeet: 1
+  _spatiallyAnchorConfiguredFloor: 1
+  _waitForTrackedHeadsetBeforeLockingFloor: 0
+  _floorLockDelay: 0
+  _floorOffsetBelowAvatar: 0.03
   _surfaces:
   - Name: Floor
     Kind: 0
-    LocalPosition: {x: 0, y: 0, z: 0.8}
+    LocalPosition: {x: 0, y: 0, z: 0}
     LocalEulerAngles: {x: 0, y: 0, z: 0}
-    Size: {x: 3, y: 3}
+    Size: {x: 200, y: 200}
     Color: {r: 0.08, g: 0.42, b: 1, a: 0.32}
   - Name: Front Wall
     Kind: 1
     LocalPosition: {x: 0, y: 1.25, z: 2.3}
     LocalEulerAngles: {x: 0, y: 180, z: 0}
     Size: {x: 3, y: 2.5}
-    Color: {r: 0.1, g: 0.45, b: 1, a: 0.24}
+    Color: {r: 1, g: 0.82, b: 0, a: 0.72}
   - Name: Back Wall
     Kind: 1
     LocalPosition: {x: 0, y: 1.25, z: -0.7}
     LocalEulerAngles: {x: 0, y: 0, z: 0}
     Size: {x: 3, y: 2.5}
-    Color: {r: 0.55, g: 0.35, b: 1, a: 0.24}
+    Color: {r: 1, g: 0.82, b: 0, a: 0.72}
   - Name: Left Wall
     Kind: 1
     LocalPosition: {x: -1.5, y: 1.25, z: 0.8}
     LocalEulerAngles: {x: 0, y: 90, z: 0}
     Size: {x: 3, y: 2.5}
-    Color: {r: 1, g: 0.75, b: 0.1, a: 0.24}
+    Color: {r: 1, g: 0.82, b: 0, a: 0.72}
   - Name: Right Wall
     Kind: 1
     LocalPosition: {x: 1.5, y: 1.25, z: 0.8}
     LocalEulerAngles: {x: 0, y: -90, z: 0}
     Size: {x: 3, y: 2.5}
-    Color: {r: 1, g: 0.35, b: 0.2, a: 0.24}
---- !u!1 &2100000101
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 2100000102}
-  - component: {fileID: 2100000103}
-  m_Layer: 0
-  m_Name: '[Task 3] Pinch Path Drawing Agent Controller'
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &2100000102
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2100000101}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &2100000103
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2100000101}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8eb4ea81df774d4d9394661facdf260d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  agentTravel: {fileID: 0}
-  groundLayer:
-    serializedVersion: 2
-    m_Bits: 0
-  curvedRay: {fileID: 0}
-  pinPreviewCircle: {fileID: 0}
-  pinPrefab: {fileID: 0}
-  fistThreshold: 0.075
-  thumbHeightThreshold: 0.08
-  pinchThreshold: 0.035
-  rayForwardDistance: 3.5
-  rayCurveHeight: 1.5
-  rayVerticalDrop: 0.8
-  raySegments: 24
-  rayWidth: 0.01
-  rayColor: {r: 0.2, g: 0.85, b: 1, a: 0.95}
-  previewPulseSpeed: 3
-  minPreviewAlpha: 0.25
-  maxPreviewAlpha: 1
-  previewCircleRadius: 0.12
-  previewCircleThickness: 0.005
-  previewColor: {r: 0.15, g: 0.75, b: 1, a: 0.75}
-  pinStemHeight: 0.18
-  pinStemRadius: 0.012
-  pinHeadRadius: 0.04
-  pinColor: {r: 1, g: 0.25, b: 0.2, a: 1}
-  createTemporaryTestFloor: 1
-  testFloorPosition: {x: 0, y: 0, z: 2}
-  testFloorScale: {x: 2, y: 1, z: 2}
-  testFloorColor: {r: 0.3, g: 0.32, b: 0.36, a: 1}
-  statusText: {fileID: 0}
-  statusMessageDuration: 3
+    Color: {r: 1, g: 0.82, b: 0, a: 0.72}
 --- !u!1 &2144580149
 GameObject:
   m_ObjectHideFlags: 0
@@ -2326,6 +2261,5 @@ SceneRoots:
   - {fileID: 1941844824}
   - {fileID: 338210503}
   - {fileID: 2100000002}
-  - {fileID: 2100000102}
   - {fileID: 1357563083}
   - {fileID: 2144580152}
