@@ -366,7 +366,10 @@ public class HandTrackingPinning : MonoBehaviour
     private void PlacePin()
     {
         if (!hasValidRayHit)
+        {
+            ShowStatusMessage("No valid hit for pin");
             return;
+        }
 
         if (currentPin != null)
             Destroy(currentPin);
@@ -381,11 +384,17 @@ public class HandTrackingPinning : MonoBehaviour
         }
 
         if (agentTravel != null)
+        {
+            ShowStatusMessage("Pin placed, starting travel");
             agentTravel.SetDestination(currentRayEndPoint);
+        }
+        else
+        {
+            ShowStatusMessage("Pin placed, but AgentTravel is missing");
+        }
 
         isPinningMode = false;
         HidePinningVisuals();
-        ShowStatusMessage("Pin Placed");
     }
 
     private void HidePinningVisuals()
