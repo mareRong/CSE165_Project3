@@ -1234,8 +1234,8 @@ Camera:
   m_GameObject: {fileID: 1226655819}
   m_Enabled: 0
   serializedVersion: 2
-  m_ClearFlags: 2
-  m_BackGroundColor: {r: 0, g: 0, b: 0, a: 0}
+  m_ClearFlags: 1
+  m_BackGroundColor: {r: 0.19215687, g: 0.3019608, b: 0.4745098, a: 0}
   m_projectionMatrixMode: 1
   m_GateFitMode: 2
   m_FOVAxisMode: 0
@@ -1553,8 +1553,8 @@ Camera:
   m_GameObject: {fileID: 1851559331}
   m_Enabled: 0
   serializedVersion: 2
-  m_ClearFlags: 2
-  m_BackGroundColor: {r: 0, g: 0, b: 0, a: 0}
+  m_ClearFlags: 1
+  m_BackGroundColor: {r: 0.19215687, g: 0.3019608, b: 0.4745098, a: 0}
   m_projectionMatrixMode: 1
   m_GateFitMode: 2
   m_FOVAxisMode: 0
@@ -2132,8 +2132,6 @@ MonoBehaviour:
   _useConfiguredWallsWhenDetectionFails: 0
   _detectedRoomWallFetchAttempts: 20
   _detectedRoomWallFetchRetryDelaySeconds: 0.75
-  _showDebugStatus: 1
-  _debugStatusText: {fileID: 1950750448}
   _wallOverlayColor: {r: 1, g: 0.82, b: 0, a: 0.72}
   _surfaceLayerName: Surface
   _floorWorldY: 0
