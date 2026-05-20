@@ -35,9 +35,6 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
     [SerializeField] private int _detectedRoomWallFetchAttempts = 20;
     [SerializeField] private float _detectedRoomWallFetchRetryDelaySeconds = 0.75f;
     [SerializeField] private Color _wallOverlayColor = new Color(1f, 0.82f, 0f, 0.72f);
-    [SerializeField] private bool _extendDetectedWallsToFloor = true;
-    [SerializeField] private float _detectedWallFloorOverlap = 0.04f;
-    [SerializeField] private float _detectedWallTopPadding = 0.06f;
     [SerializeField] private string _surfaceLayerName = "Surface";
     [SerializeField] private float _floorWorldY = 0f;
     [SerializeField] private float _configuredWallBaseWorldY = 0f;
@@ -451,48 +448,15 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
         anchorObject.AddComponent<OVRSpatialAnchor>();
         _createdSurfaces.Add(anchorObject);
 
-        Rect visualBounds = ResolveDetectedWallVisualBounds(anchorObject.transform, wallBounds);
         Vector2 wallSize = new Vector2(
-            Mathf.Max(0.01f, visualBounds.size.x),
-            Mathf.Max(0.01f, visualBounds.size.y));
-        Vector3 localCenter = new Vector3(visualBounds.center.x, visualBounds.center.y, 0f);
+            Mathf.Max(0.01f, wallBounds.size.x),
+            Mathf.Max(0.01f, wallBounds.size.y));
+        Vector3 localCenter = new Vector3(wallBounds.center.x, wallBounds.center.y, 0f);
         CreateSurfaceVisual(anchorObject.transform, wallName, SurfaceKind.Wall, wallSize, _wallOverlayColor, localCenter);
 
         SpatialSurfaceMarker marker = anchorObject.AddComponent<SpatialSurfaceMarker>();
         marker.Initialize(wallName, SurfaceKind.Wall, wallSize);
         return true;
-    }
-
-    private Rect ResolveDetectedWallVisualBounds(Transform wallTransform, Rect detectedBounds)
-    {
-        Rect visualBounds = detectedBounds;
-        visualBounds.yMax += Mathf.Max(0f, _detectedWallTopPadding);
-
-        if (!_extendDetectedWallsToFloor || wallTransform == null)
-        {
-            return visualBounds;
-        }
-
-        Vector3 localFloorPoint = wallTransform.InverseTransformPoint(
-            wallTransform.position + Vector3.up * (GetCurrentFloorWorldY() - wallTransform.position.y));
-        float floorLocalY = localFloorPoint.y - Mathf.Max(0f, _detectedWallFloorOverlap);
-        visualBounds.yMin = Mathf.Min(visualBounds.yMin, floorLocalY);
-        return visualBounds;
-    }
-
-    private float GetCurrentFloorWorldY()
-    {
-        if (_hasLockedFloorPose)
-        {
-            return _lockedFloorPosition.y;
-        }
-
-        if (_floorAnchor != null)
-        {
-            return _floorAnchor.position.y;
-        }
-
-        return _floorWorldY;
     }
 
     private Transform ResolveTrackingSpace()
