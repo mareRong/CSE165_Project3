@@ -105,6 +105,7 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
     private bool _hasLockedFloorPose;
     private float _floorLockStartTime;
     private SurfaceDefinition _pendingFloorLockSurface;
+    private float _nextPassthroughStatusTime;
 
     private sealed class ConfiguredWallAnchor
     {
@@ -115,6 +116,7 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
     private void Start()
     {
         _floorLockStartTime = Time.time;
+        ConfigurePassthroughView();
 
         if (_buildOnStart)
         {
@@ -124,6 +126,8 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
 
     private void LateUpdate()
     {
+        ReportPassthroughStatusPeriodically();
+
         if (_floorAnchor != null && !_hasLockedFloorPose && _pendingFloorLockSurface != null)
         {
             TryLockFloorPose(_floorAnchor, _pendingFloorLockSurface);
@@ -460,6 +464,65 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
         }
 
         Debug.Log($"SpatialSurfaceAnchorManager status: {message}", this);
+    }
+
+    private void ConfigurePassthroughView()
+    {
+        if (OVRManager.instance != null)
+        {
+            OVRManager.instance.isInsightPassthroughEnabled = true;
+        }
+
+        Camera[] cameras = Camera.allCameras;
+        for (int i = 0; i < cameras.Length; i++)
+        {
+            cameras[i].clearFlags = CameraClearFlags.SolidColor;
+            cameras[i].backgroundColor = Color.clear;
+        }
+
+        OVRPassthroughLayer[] passthroughLayers = FindObjectsByType<OVRPassthroughLayer>(
+            FindObjectsInactive.Exclude,
+            FindObjectsSortMode.None);
+        for (int i = 0; i < passthroughLayers.Length; i++)
+        {
+            passthroughLayers[i].hidden = false;
+            passthroughLayers[i].overlayType = OVROverlay.OverlayType.Underlay;
+            passthroughLayers[i].textureOpacity = 1f;
+        }
+
+        ReportPassthroughStatus("Configured passthrough view");
+    }
+
+    private void ReportPassthroughStatusPeriodically()
+    {
+        if (Time.time < _nextPassthroughStatusTime)
+        {
+            return;
+        }
+
+        _nextPassthroughStatusTime = Time.time + 5f;
+        if (OVRManager.IsInsightPassthroughInitialized() || OVRManager.HasInsightPassthroughInitFailed())
+        {
+            ReportPassthroughStatus("Passthrough status");
+        }
+    }
+
+    private void ReportPassthroughStatus(string prefix)
+    {
+        bool supported = OVRManager.IsInsightPassthroughSupported();
+        bool initialized = OVRManager.IsInsightPassthroughInitialized();
+        bool failed = OVRManager.HasInsightPassthroughInitFailed();
+        bool pending = OVRManager.IsInsightPassthroughInitPending();
+        bool requested = OVRManager.instance != null && OVRManager.instance.isInsightPassthroughEnabled;
+
+        Debug.Log(
+            $"{prefix}: requested={requested}, supported={supported}, initialized={initialized}, pending={pending}, failed={failed}.",
+            this);
+
+        if (!initialized)
+        {
+            ReportStatus($"{prefix}: passthrough not visible yet. supported={supported}, pending={pending}, failed={failed}");
+        }
     }
 
     private int CreateConfiguredWallAnchors(Transform root)
