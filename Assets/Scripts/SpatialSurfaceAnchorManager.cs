@@ -816,13 +816,10 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
             return _surfaceMaterial;
         }
 
-        Shader shader = EnvironmentDepthManager.IsSupported
-            ? Shader.Find("EnvironmentDepth/URP/OcclusionUnlit")
-            : null;
-
-        if (shader == null && EnvironmentDepthManager.IsSupported)
+        Shader shader = Shader.Find("Oculus/Unlit Transparent Color");
+        if (shader == null)
         {
-            shader = Shader.Find("Meta/EnvironmentDepth/Built-in Render Pipeline/OcclusionUnlit");
+            shader = Shader.Find("Oculus/UnlitTransparent");
         }
 
         if (shader == null)
@@ -833,11 +830,6 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
         if (shader == null)
         {
             shader = Shader.Find("Unlit/Color");
-        }
-
-        if (shader == null)
-        {
-            shader = Shader.Find("Standard");
         }
 
         _surfaceMaterial = new Material(shader)
@@ -872,11 +864,6 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
         if (_surfaceMaterial.HasProperty("_Cull"))
         {
             _surfaceMaterial.SetFloat("_Cull", (float)UnityEngine.Rendering.CullMode.Off);
-        }
-
-        if (_surfaceMaterial.HasProperty("_EnvironmentDepthBias"))
-        {
-            _surfaceMaterial.SetFloat("_EnvironmentDepthBias", 0.04f);
         }
 
         _surfaceMaterial.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
