@@ -504,7 +504,7 @@ MonoBehaviour:
   requestBodyTrackingPermissionOnStartup: 0
   requestFaceTrackingPermissionOnStartup: 0
   requestEyeTrackingPermissionOnStartup: 0
-  requestScenePermissionOnStartup: 1
+  requestScenePermissionOnStartup: 0
   requestRecordAudioPermissionOnStartup: 0
   requestPassthroughCameraAccessPermissionOnStartup: 0
   _localDimming: 1
@@ -2127,9 +2127,9 @@ MonoBehaviour:
   _rebuildExistingSurfaces: 1
   _addMeshColliders: 1
   _useDetectedRoomWalls: 1
-  _showConfiguredWallsWhileDetecting: 1
-  _requestSceneCaptureIfNoRoom: 1
-  _useConfiguredWallsWhenDetectionFails: 1
+  _showConfiguredWallsWhileDetecting: 0
+  _requestSceneCaptureIfNoRoom: 0
+  _useConfiguredWallsWhenDetectionFails: 0
   _detectedRoomWallFetchAttempts: 20
   _detectedRoomWallFetchRetryDelaySeconds: 0.75
   _showDebugStatus: 1

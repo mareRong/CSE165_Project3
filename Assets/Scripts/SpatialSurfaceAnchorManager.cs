@@ -29,9 +29,9 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
     [SerializeField] private bool _rebuildExistingSurfaces = true;
     [SerializeField] private bool _addMeshColliders = true;
     [SerializeField] private bool _useDetectedRoomWalls = true;
-    [SerializeField] private bool _showConfiguredWallsWhileDetecting = true;
-    [SerializeField] private bool _requestSceneCaptureIfNoRoom = true;
-    [SerializeField] private bool _useConfiguredWallsWhenDetectionFails = true;
+    [SerializeField] private bool _showConfiguredWallsWhileDetecting = false;
+    [SerializeField] private bool _requestSceneCaptureIfNoRoom = false;
+    [SerializeField] private bool _useConfiguredWallsWhenDetectionFails = false;
     [SerializeField] private int _detectedRoomWallFetchAttempts = 20;
     [SerializeField] private float _detectedRoomWallFetchRetryDelaySeconds = 0.75f;
     [SerializeField] private bool _showDebugStatus = true;
@@ -113,10 +113,30 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
         public SurfaceDefinition Surface;
     }
 
+    private sealed class WallDetectionDiagnostics
+    {
+        public int RoomsWithLayout;
+        public int WallUuids;
+        public int FetchedRoomAnchors;
+        public int MatchedWallAnchors;
+        public int CreatedWalls;
+        public int RoomAnchorFetchFailures;
+        public int MissingLocatable;
+        public int MissingPose;
+        public int PoseConversionFailures;
+        public int MissingBounds2D;
+        public int Bounds2DReportedDisabled;
+        public int BoundsReadFailures;
+
+        public string ToStatusString()
+        {
+            return $"rooms={RoomsWithLayout}, wallIds={WallUuids}, fetched={FetchedRoomAnchors}, matched={MatchedWallAnchors}, made={CreatedWalls}, noLoc={MissingLocatable}, noPose={MissingPose}, noBounds={MissingBounds2D}, boundsDisabled={Bounds2DReportedDisabled}, boundsReadFail={BoundsReadFailures}";
+        }
+    }
+
     private void Start()
     {
         _floorLockStartTime = Time.time;
-        ConfigurePassthroughView();
 
         if (_buildOnStart)
         {
@@ -283,6 +303,7 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
 
         for (int attempt = 1; attempt <= maxAttempts; attempt++)
         {
+            WallDetectionDiagnostics diagnostics = new WallDetectionDiagnostics();
             if (!HasReliableTrackingSpace())
             {
                 string trackingMessage = $"Waiting for reliable headset tracking before loading detected room walls. Attempt {attempt}/{maxAttempts}.";
@@ -325,7 +346,7 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
                 ReportStatus($"Found {rooms.Count} room layout anchor(s). Loading walls... ({attempt}/{maxAttempts})");
                 for (int roomIndex = 0; roomIndex < rooms.Count; roomIndex++)
                 {
-                    wallCount += await CreateDetectedRoomWallAnchors(root, rooms[roomIndex], wallCount);
+                    wallCount += await CreateDetectedRoomWallAnchors(root, rooms[roomIndex], wallCount, diagnostics);
                 }
             }
 
@@ -337,7 +358,7 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
                 return;
             }
 
-            string retryMessage = $"Detected room wall fetch returned no usable walls on attempt {attempt}/{maxAttempts}.";
+            string retryMessage = $"Detected room wall fetch returned no usable walls on attempt {attempt}/{maxAttempts}. {diagnostics.ToStatusString()}.";
             Debug.Log(retryMessage, this);
             ReportStatus(retryMessage);
             await DelayDetectedRoomWallRetry();
@@ -559,7 +580,11 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
         _configuredWallAnchors.Clear();
     }
 
-    private async Task<int> CreateDetectedRoomWallAnchors(Transform root, OVRAnchor room, int existingWallCount)
+    private async Task<int> CreateDetectedRoomWallAnchors(
+        Transform root,
+        OVRAnchor room,
+        int existingWallCount,
+        WallDetectionDiagnostics diagnostics)
     {
         if (!room.TryGetComponent(out OVRRoomLayout roomLayout))
         {
@@ -573,14 +598,18 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
             return 0;
         }
 
+        diagnostics.RoomsWithLayout++;
+        diagnostics.WallUuids += wallUuids.Length;
         HashSet<Guid> wallUuidSet = new HashSet<Guid>(wallUuids);
         List<OVRAnchor> roomAnchors = new List<OVRAnchor>();
         OVRResult<List<OVRAnchor>, OVRAnchor.FetchResult> roomAnchorResult = await roomLayout.FetchAnchorsAsync(roomAnchors);
+        diagnostics.FetchedRoomAnchors += roomAnchors.Count;
         Debug.Log(
             $"Room {room.Uuid} layout has {wallUuids.Length} wall UUID(s); fetched {roomAnchors.Count} room anchor(s), success={roomAnchorResult.Success}.",
             this);
         if (!roomAnchorResult.Success)
         {
+            diagnostics.RoomAnchorFetchFailures++;
             return 0;
         }
 
@@ -593,19 +622,26 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
                 continue;
             }
 
-            if (await TryCreateDetectedWallAnchor(root, roomAnchor, existingWallCount + createdCount + 1))
+            diagnostics.MatchedWallAnchors++;
+            if (await TryCreateDetectedWallAnchor(root, roomAnchor, existingWallCount + createdCount + 1, diagnostics))
             {
                 createdCount++;
+                diagnostics.CreatedWalls++;
             }
         }
 
         return createdCount;
     }
 
-    private async Task<bool> TryCreateDetectedWallAnchor(Transform root, OVRAnchor wallAnchor, int wallNumber)
+    private async Task<bool> TryCreateDetectedWallAnchor(
+        Transform root,
+        OVRAnchor wallAnchor,
+        int wallNumber,
+        WallDetectionDiagnostics diagnostics)
     {
         if (!wallAnchor.TryGetComponent(out OVRLocatable locatable))
         {
+            diagnostics.MissingLocatable++;
             Debug.LogWarning($"Detected wall anchor {wallAnchor.Uuid} has no OVRLocatable.", this);
             return false;
         }
@@ -613,6 +649,7 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
         await locatable.SetEnabledAsync(true);
         if (!locatable.TryGetSceneAnchorPose(out OVRLocatable.TrackingSpacePose pose))
         {
+            diagnostics.MissingPose++;
             Debug.LogWarning($"Detected wall anchor {wallAnchor.Uuid} did not provide a scene anchor pose.", this);
             return false;
         }
@@ -622,17 +659,36 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
         Quaternion? worldRotation = pose.ComputeWorldRotation(trackingSpace);
         if (!worldPosition.HasValue || !worldRotation.HasValue)
         {
+            diagnostics.PoseConversionFailures++;
             Debug.LogWarning($"Detected wall anchor {wallAnchor.Uuid} pose could not be converted to world space.", this);
             return false;
         }
 
-        if (!wallAnchor.TryGetComponent(out OVRBounded2D bounds2D) || !bounds2D.IsEnabled)
+        if (!wallAnchor.TryGetComponent(out OVRBounded2D bounds2D))
         {
-            Debug.LogWarning($"Detected wall anchor {wallAnchor.Uuid} has no enabled OVRBounded2D bounds.", this);
+            diagnostics.MissingBounds2D++;
+            Debug.LogWarning($"Detected wall anchor {wallAnchor.Uuid} has no OVRBounded2D bounds.", this);
             return false;
         }
 
-        Rect wallBounds = bounds2D.BoundingBox;
+        if (!bounds2D.IsEnabled)
+        {
+            diagnostics.Bounds2DReportedDisabled++;
+            Debug.LogWarning($"Detected wall anchor {wallAnchor.Uuid} reported disabled OVRBounded2D bounds; attempting to read bounds anyway.", this);
+        }
+
+        Rect wallBounds;
+        try
+        {
+            wallBounds = bounds2D.BoundingBox;
+        }
+        catch (Exception exception)
+        {
+            diagnostics.BoundsReadFailures++;
+            Debug.LogWarning($"Detected wall anchor {wallAnchor.Uuid} OVRBounded2D bounds could not be read. {exception.Message}", this);
+            return false;
+        }
+
         Vector2 wallSize = new Vector2(
             Mathf.Max(0.01f, wallBounds.size.x),
             Mathf.Max(0.01f, wallBounds.size.y));
