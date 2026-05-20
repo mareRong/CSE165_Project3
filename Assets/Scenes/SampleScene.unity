@@ -249,11 +249,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 032c1dae0ce8a488c84e448e0d859e71, type: 3}
   m_PrefabInstance: {fileID: 338210503}
   m_PrefabAsset: {fileID: 0}
---- !u!1 &338210507 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 1082271958561512970, guid: 032c1dae0ce8a488c84e448e0d859e71, type: 3}
-  m_PrefabInstance: {fileID: 338210503}
-  m_PrefabAsset: {fileID: 0}
 --- !u!114 &338210508
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -268,21 +263,25 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AgentTravel
   avatar: {fileID: 338210506}
   avatarAnimator: {fileID: 338210505}
+  navMeshAgent: {fileID: 0}
+  useNavMesh: 0
+  navMeshSurface: {fileID: 0}
+  bakeDelay: 2
   moveSpeed: 3
   rotationSpeed: 5
   stopDistance: 0.3
-  useNavMesh: 0
-  navMeshAgent: {fileID: 0}
-  keepAvatarOnGround: 1
   groundLayers:
     serializedVersion: 2
     m_Bits: 4294967295
   groundProbeHeight: 2
   groundProbeDistance: 6
   groundOffset: 0.01
-  showFootGroundHighlight: 1
-  footHighlightRadius: 0.35
-  footHighlightColor: {r: 0.2, g: 0.95, b: 1, a: 0.68}
+  useFootIK: 1
+  footRaycastHeight: 0.5
+  footRaycastDistance: 1.5
+  footOffset: 0.02
+  footPositionWeight: 1
+  footRotationWeight: 0.6
 --- !u!114 &338210510
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -627,7 +626,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8eb4ea81df774d4d9394661facdf260d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HandTrackingPinning
-  agentTravel: {fileID: 0}
+  agentTravel: {fileID: 338210508}
   groundLayer:
     serializedVersion: 2
     m_Bits: 65
@@ -642,6 +641,8 @@ MonoBehaviour:
   rayVerticalDrop: 0.8
   raySegments: 24
   rayWidth: 0.01
+  useSphereCast: 1
+  raycastRadius: 0.03
   rayColor: {r: 0.2, g: 0.85, b: 1, a: 0.95}
   previewPulseSpeed: 3
   minPreviewAlpha: 0.25
@@ -2101,6 +2102,8 @@ MonoBehaviour:
   _buildOnStart: 1
   _rebuildExistingSurfaces: 1
   _addMeshColliders: 1
+  _showFloorVisuals: 1
+  _showWallVisuals: 1
   _useDetectedRoomWalls: 1
   _showConfiguredWallsWhileDetecting: 0
   _requestSceneCaptureIfNoRoom: 0

@@ -43,6 +43,7 @@ public class AgentTravel : MonoBehaviour
     private Vector3 targetPosition;
     private bool hasTarget;
     private Animator[] animators = Array.Empty<Animator>();
+    private bool lastLoggedWalkingState;
 
     private IEnumerator Start()
     {
@@ -118,6 +119,8 @@ public class AgentTravel : MonoBehaviour
     {
         targetPosition = destination;
         hasTarget = true;
+
+        Debug.Log($"AgentTravel received destination {destination}.", this);
 
         if (useNavMesh && navMeshAgent != null)
         {
@@ -255,6 +258,12 @@ public class AgentTravel : MonoBehaviour
 
     private void SetWalking(bool walking)
     {
+        if (lastLoggedWalkingState != walking)
+        {
+            Debug.Log($"AgentTravel set Walking={walking}. hasTarget={hasTarget}", this);
+            lastLoggedWalkingState = walking;
+        }
+
         if (animators == null || animators.Length == 0)
         {
             CacheAnimators();
