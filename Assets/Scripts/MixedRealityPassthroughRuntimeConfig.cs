@@ -5,6 +5,7 @@ using UnityEngine;
 public sealed class MixedRealityPassthroughRuntimeConfig : MonoBehaviour
 {
     private const string RuntimeObjectName = "[Task 2] Mixed Reality Runtime Config";
+    [SerializeField] private bool _enableEnvironmentDepthOcclusion = false;
     private bool _loggedPassthroughConfigured;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -120,12 +121,23 @@ public sealed class MixedRealityPassthroughRuntimeConfig : MonoBehaviour
 
     private void ConfigureEnvironmentDepth()
     {
+        EnvironmentDepthManager depthManager = FindAnyObjectByType<EnvironmentDepthManager>();
+        if (!_enableEnvironmentDepthOcclusion)
+        {
+            if (depthManager != null)
+            {
+                depthManager.OcclusionShadersMode = OcclusionShadersMode.None;
+                depthManager.enabled = false;
+            }
+
+            return;
+        }
+
         if (!EnvironmentDepthManager.IsSupported)
         {
             return;
         }
 
-        EnvironmentDepthManager depthManager = FindAnyObjectByType<EnvironmentDepthManager>();
         if (depthManager == null)
         {
             depthManager = gameObject.AddComponent<EnvironmentDepthManager>();
