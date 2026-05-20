@@ -34,7 +34,7 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
     [SerializeField] private bool _useConfiguredWallsWhenDetectionFails = false;
     [SerializeField] private int _detectedRoomWallFetchAttempts = 20;
     [SerializeField] private float _detectedRoomWallFetchRetryDelaySeconds = 0.75f;
-    [SerializeField] private Color _wallOverlayColor = new Color(1f, 0.82f, 0f, 1f);
+    [SerializeField] private Color _wallOverlayColor = new Color(1f, 0.62f, 0.18f, 1f);
     [SerializeField] private string _surfaceLayerName = "Surface";
     [SerializeField] private float _floorWorldY = 0f;
     [SerializeField] private float _configuredWallBaseWorldY = 0f;
@@ -62,7 +62,7 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
             LocalPosition = new Vector3(0f, 1.25f, 2.3f),
             LocalEulerAngles = new Vector3(0f, 180f, 0f),
             Size = new Vector2(3f, 2.5f),
-            Color = new Color(1f, 0.82f, 0f, 1f)
+            Color = new Color(1f, 0.62f, 0.18f, 1f)
         },
         new SurfaceDefinition
         {
@@ -71,7 +71,7 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
             LocalPosition = new Vector3(0f, 1.25f, -0.7f),
             LocalEulerAngles = Vector3.zero,
             Size = new Vector2(3f, 2.5f),
-            Color = new Color(1f, 0.82f, 0f, 1f)
+            Color = new Color(1f, 0.62f, 0.18f, 1f)
         },
         new SurfaceDefinition
         {
@@ -80,7 +80,7 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
             LocalPosition = new Vector3(-1.5f, 1.25f, 0.8f),
             LocalEulerAngles = new Vector3(0f, 90f, 0f),
             Size = new Vector2(3f, 2.5f),
-            Color = new Color(1f, 0.82f, 0f, 1f)
+            Color = new Color(1f, 0.62f, 0.18f, 1f)
         },
         new SurfaceDefinition
         {
@@ -89,7 +89,7 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
             LocalPosition = new Vector3(1.5f, 1.25f, 0.8f),
             LocalEulerAngles = new Vector3(0f, -90f, 0f),
             Size = new Vector2(3f, 2.5f),
-            Color = new Color(1f, 0.82f, 0f, 1f)
+            Color = new Color(1f, 0.62f, 0.18f, 1f)
         }
     };
 
