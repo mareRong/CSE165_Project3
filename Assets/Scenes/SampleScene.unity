@@ -2126,8 +2126,8 @@ MonoBehaviour:
   _buildOnStart: 1
   _rebuildExistingSurfaces: 1
   _addMeshColliders: 1
-  _useDetectedRoomWalls: 0
-  _showConfiguredWallsWhileDetecting: 1
+  _useDetectedRoomWalls: 1
+  _showConfiguredWallsWhileDetecting: 0
   _requestSceneCaptureIfNoRoom: 1
   _useConfiguredWallsWhenDetectionFails: 1
   _wallOverlayColor: {r: 1, g: 0.82, b: 0, a: 0.72}

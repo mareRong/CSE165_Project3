@@ -27,8 +27,8 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
     [SerializeField] private bool _buildOnStart = true;
     [SerializeField] private bool _rebuildExistingSurfaces = true;
     [SerializeField] private bool _addMeshColliders = true;
-    [SerializeField] private bool _useDetectedRoomWalls = false;
-    [SerializeField] private bool _showConfiguredWallsWhileDetecting = true;
+    [SerializeField] private bool _useDetectedRoomWalls = true;
+    [SerializeField] private bool _showConfiguredWallsWhileDetecting = false;
     [SerializeField] private bool _requestSceneCaptureIfNoRoom = true;
     [SerializeField] private bool _useConfiguredWallsWhenDetectionFails = true;
     [SerializeField] private Color _wallOverlayColor = new Color(1f, 0.82f, 0f, 0.72f);
