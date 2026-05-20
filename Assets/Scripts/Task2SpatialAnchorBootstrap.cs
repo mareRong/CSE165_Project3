@@ -7,7 +7,7 @@ public static class Task2SpatialAnchorBootstrap
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void EnsureManagerExists()
     {
-        if (Object.FindFirstObjectByType<SpatialSurfaceAnchorManager>() != null)
+        if (Object.FindAnyObjectByType<SpatialSurfaceAnchorManager>() != null)
         {
             return;
         }

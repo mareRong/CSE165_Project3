@@ -49,6 +49,7 @@ public class AgentTravel : MonoBehaviour
         if (navMeshAgent == null)
             navMeshAgent = avatar.GetComponent<NavMeshAgent>();
 
+        ForceAvatarOpaque();
         SetWalking(false);
         EnsureFootGroundHighlight();
         SnapAvatarToGround();
@@ -150,6 +151,59 @@ public class AgentTravel : MonoBehaviour
         if (avatarAnimator != null)
         {
             avatarAnimator.SetBool("Walking", walking);
+        }
+    }
+
+    private void ForceAvatarOpaque()
+    {
+        if (avatar == null)
+        {
+            return;
+        }
+
+        Renderer[] renderers = avatar.GetComponentsInChildren<Renderer>(true);
+        for (int rendererIndex = 0; rendererIndex < renderers.Length; rendererIndex++)
+        {
+            Material[] materials = renderers[rendererIndex].materials;
+            for (int materialIndex = 0; materialIndex < materials.Length; materialIndex++)
+            {
+                Material material = materials[materialIndex];
+                if (material == null)
+                {
+                    continue;
+                }
+
+                SetMaterialColorAlpha(material, "_Color", 1f);
+                SetMaterialColorAlpha(material, "_BaseColor", 1f);
+                SetMaterialFloat(material, "_Mode", 0f);
+                SetMaterialFloat(material, "_Surface", 0f);
+                SetMaterialFloat(material, "_SrcBlend", (float)UnityEngine.Rendering.BlendMode.One);
+                SetMaterialFloat(material, "_DstBlend", (float)UnityEngine.Rendering.BlendMode.Zero);
+                SetMaterialFloat(material, "_ZWrite", 1f);
+                material.DisableKeyword("_ALPHABLEND_ON");
+                material.DisableKeyword("_SURFACE_TYPE_TRANSPARENT");
+                material.renderQueue = -1;
+            }
+        }
+    }
+
+    private static void SetMaterialColorAlpha(Material material, string propertyName, float alpha)
+    {
+        if (!material.HasProperty(propertyName))
+        {
+            return;
+        }
+
+        Color color = material.GetColor(propertyName);
+        color.a = alpha;
+        material.SetColor(propertyName, color);
+    }
+
+    private static void SetMaterialFloat(Material material, string propertyName, float value)
+    {
+        if (material.HasProperty(propertyName))
+        {
+            material.SetFloat(propertyName, value);
         }
     }
 

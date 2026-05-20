@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Meta.XR.EnvironmentDepth;
 using UnityEngine;
 
 public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
@@ -438,9 +439,6 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
         }
 
         Rect wallBounds = bounds2D.BoundingBox;
-        Vector2 wallSize = new Vector2(
-            Mathf.Max(0.01f, wallBounds.size.x),
-            Mathf.Max(0.01f, wallBounds.size.y));
         string wallName = $"Detected Wall {wallNumber}";
 
         GameObject anchorObject = new GameObject("SpatialAnchor_" + SanitizeName(wallName));
@@ -450,6 +448,9 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
         anchorObject.AddComponent<OVRSpatialAnchor>();
         _createdSurfaces.Add(anchorObject);
 
+        Vector2 wallSize = new Vector2(
+            Mathf.Max(0.01f, wallBounds.size.x),
+            Mathf.Max(0.01f, wallBounds.size.y));
         Vector3 localCenter = new Vector3(wallBounds.center.x, wallBounds.center.y, 0f);
         CreateSurfaceVisual(anchorObject.transform, wallName, SurfaceKind.Wall, wallSize, _wallOverlayColor, localCenter);
 
@@ -460,7 +461,7 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
 
     private Transform ResolveTrackingSpace()
     {
-        OVRCameraRig cameraRig = FindFirstObjectByType<OVRCameraRig>();
+        OVRCameraRig cameraRig = FindAnyObjectByType<OVRCameraRig>();
         if (cameraRig != null && cameraRig.trackingSpace != null)
         {
             return cameraRig.trackingSpace;
@@ -604,7 +605,7 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
     {
         footY = 0f;
 
-        AgentTravel agentTravel = FindFirstObjectByType<AgentTravel>();
+        AgentTravel agentTravel = FindAnyObjectByType<AgentTravel>();
         Transform avatar = agentTravel != null ? agentTravel.avatar : null;
         if (avatar == null && agentTravel != null)
         {
@@ -641,7 +642,7 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
             return mainCamera.transform;
         }
 
-        AgentTravel agentTravel = FindFirstObjectByType<AgentTravel>();
+        AgentTravel agentTravel = FindAnyObjectByType<AgentTravel>();
         if (agentTravel == null)
         {
             return null;
@@ -815,15 +816,25 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
             return _surfaceMaterial;
         }
 
-        Shader shader = Shader.Find("Universal Render Pipeline/Unlit");
+        Shader shader = Shader.Find("Task2/Transparent Color");
         if (shader == null)
         {
-            shader = Shader.Find("Unlit/Color");
+            shader = Shader.Find("Oculus/Unlit Transparent Color");
         }
 
         if (shader == null)
         {
-            shader = Shader.Find("Standard");
+            shader = Shader.Find("Oculus/UnlitTransparent");
+        }
+
+        if (shader == null)
+        {
+            shader = Shader.Find("Universal Render Pipeline/Unlit");
+        }
+
+        if (shader == null)
+        {
+            shader = Shader.Find("Unlit/Color");
         }
 
         _surfaceMaterial = new Material(shader)
