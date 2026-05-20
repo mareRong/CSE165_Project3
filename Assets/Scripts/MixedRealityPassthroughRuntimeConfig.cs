@@ -4,6 +4,7 @@ using UnityEngine;
 public sealed class MixedRealityPassthroughRuntimeConfig : MonoBehaviour
 {
     private const string RuntimeObjectName = "[Task 2] Mixed Reality Runtime Config";
+    private bool _loggedPassthroughConfigured;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void EnsureRuntimeConfigExists()
@@ -56,7 +57,11 @@ public sealed class MixedRealityPassthroughRuntimeConfig : MonoBehaviour
         activeLayer.enabled = true;
 
         DisableExtraPassthroughLayers(activeLayer);
-        Debug.Log("Task 2 passthrough is forced on with a single underlay layer.", this);
+        if (!_loggedPassthroughConfigured)
+        {
+            Debug.Log("Task 2 passthrough is forced on with a single underlay layer.", this);
+            _loggedPassthroughConfigured = true;
+        }
     }
 
     private static OVRPassthroughLayer ResolvePrimaryPassthroughLayer(OVRManager manager)

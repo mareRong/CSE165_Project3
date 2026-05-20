@@ -33,7 +33,9 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
     [SerializeField] private bool _useConfiguredWallsWhenDetectionFails = false;
     [SerializeField] private int _detectedRoomWallFetchAttempts = 20;
     [SerializeField] private float _detectedRoomWallFetchRetryDelaySeconds = 0.75f;
-    [SerializeField] private Color _wallOverlayColor = new Color(1f, 0.82f, 0f, 0.14f);
+    [SerializeField] private Color _wallOverlayColor = new Color(1f, 0.82f, 0f, 0.28f);
+    [SerializeField] private float _visualBorderThickness = 0.04f;
+    [SerializeField] private float _floorGridSpacing = 0.5f;
     [SerializeField] private string _surfaceLayerName = "Surface";
     [SerializeField] private float _floorWorldY = 0f;
     [SerializeField] private float _configuredWallBaseWorldY = 0f;
@@ -52,7 +54,7 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
             LocalPosition = Vector3.zero,
             LocalEulerAngles = Vector3.zero,
             Size = new Vector2(200f, 200f),
-            Color = new Color(0.08f, 0.42f, 1f, 0.015f)
+            Color = new Color(0.08f, 0.42f, 1f, 0.18f)
         },
         new SurfaceDefinition
         {
@@ -61,7 +63,7 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
             LocalPosition = new Vector3(0f, 1.25f, 2.3f),
             LocalEulerAngles = new Vector3(0f, 180f, 0f),
             Size = new Vector2(3f, 2.5f),
-            Color = new Color(1f, 0.82f, 0f, 0.14f)
+            Color = new Color(1f, 0.82f, 0f, 0.28f)
         },
         new SurfaceDefinition
         {
@@ -70,7 +72,7 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
             LocalPosition = new Vector3(0f, 1.25f, -0.7f),
             LocalEulerAngles = Vector3.zero,
             Size = new Vector2(3f, 2.5f),
-            Color = new Color(1f, 0.82f, 0f, 0.14f)
+            Color = new Color(1f, 0.82f, 0f, 0.28f)
         },
         new SurfaceDefinition
         {
@@ -79,7 +81,7 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
             LocalPosition = new Vector3(-1.5f, 1.25f, 0.8f),
             LocalEulerAngles = new Vector3(0f, 90f, 0f),
             Size = new Vector2(3f, 2.5f),
-            Color = new Color(1f, 0.82f, 0f, 0.14f)
+            Color = new Color(1f, 0.82f, 0f, 0.28f)
         },
         new SurfaceDefinition
         {
@@ -88,7 +90,7 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
             LocalPosition = new Vector3(1.5f, 1.25f, 0.8f),
             LocalEulerAngles = new Vector3(0f, -90f, 0f),
             Size = new Vector2(3f, 2.5f),
-            Color = new Color(1f, 0.82f, 0f, 0.14f)
+            Color = new Color(1f, 0.82f, 0f, 0.28f)
         }
     };
 
@@ -491,7 +493,7 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
         };
 
         MeshFilter meshFilter = meshObject.AddComponent<MeshFilter>();
-        meshFilter.sharedMesh = CreateSurfaceMesh(visualDefinition);
+        meshFilter.sharedMesh = CreateSurfaceVisualMesh(visualDefinition);
 
         MeshRenderer meshRenderer = meshObject.AddComponent<MeshRenderer>();
         meshRenderer.sharedMaterial = CreateSurfaceMaterialInstance(ResolveSurfaceColor(visualDefinition));
@@ -499,7 +501,7 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
         if (_addMeshColliders)
         {
             MeshCollider meshCollider = meshObject.AddComponent<MeshCollider>();
-            meshCollider.sharedMesh = meshFilter.sharedMesh;
+            meshCollider.sharedMesh = CreateSolidSurfaceMesh(visualDefinition);
         }
     }
 
@@ -736,7 +738,17 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
         return Quaternion.LookRotation(flattenedForward, Vector3.up);
     }
 
-    private static Mesh CreateSurfaceMesh(SurfaceDefinition surface)
+    private Mesh CreateSurfaceVisualMesh(SurfaceDefinition surface)
+    {
+        if (surface.Kind == SurfaceKind.Floor)
+        {
+            return CreateFloorGridMesh(surface, _floorGridSpacing, _visualBorderThickness * 0.5f);
+        }
+
+        return CreateBorderSurfaceMesh(surface, _visualBorderThickness);
+    }
+
+    private static Mesh CreateSolidSurfaceMesh(SurfaceDefinition surface)
     {
         float halfWidth = Mathf.Max(0.01f, surface.Size.x) * 0.5f;
         float halfHeight = Mathf.Max(0.01f, surface.Size.y) * 0.5f;
@@ -788,6 +800,142 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
         return mesh;
     }
 
+    private static Mesh CreateBorderSurfaceMesh(SurfaceDefinition surface, float borderThickness)
+    {
+        float width = Mathf.Max(0.01f, surface.Size.x);
+        float height = Mathf.Max(0.01f, surface.Size.y);
+        float thickness = Mathf.Clamp(borderThickness, 0.005f, Mathf.Min(width, height) * 0.45f);
+        float halfWidth = width * 0.5f;
+        float halfHeight = height * 0.5f;
+        float innerHalfWidth = Mathf.Max(0f, halfWidth - thickness);
+        float innerHalfHeight = Mathf.Max(0f, halfHeight - thickness);
+
+        Vector2[] outer =
+        {
+            new Vector2(-halfWidth, -halfHeight),
+            new Vector2(-halfWidth, halfHeight),
+            new Vector2(halfWidth, halfHeight),
+            new Vector2(halfWidth, -halfHeight)
+        };
+        Vector2[] inner =
+        {
+            new Vector2(-innerHalfWidth, -innerHalfHeight),
+            new Vector2(-innerHalfWidth, innerHalfHeight),
+            new Vector2(innerHalfWidth, innerHalfHeight),
+            new Vector2(innerHalfWidth, -innerHalfHeight)
+        };
+
+        Vector3[] vertices = new Vector3[16];
+        Vector2[] uv = new Vector2[16];
+        int[] triangles = new int[24];
+
+        for (int side = 0; side < 4; side++)
+        {
+            int next = (side + 1) % 4;
+            int vertexIndex = side * 4;
+            vertices[vertexIndex] = SurfaceVertex(surface.Kind, outer[side]);
+            vertices[vertexIndex + 1] = SurfaceVertex(surface.Kind, outer[next]);
+            vertices[vertexIndex + 2] = SurfaceVertex(surface.Kind, inner[next]);
+            vertices[vertexIndex + 3] = SurfaceVertex(surface.Kind, inner[side]);
+
+            uv[vertexIndex] = Vector2.zero;
+            uv[vertexIndex + 1] = Vector2.up;
+            uv[vertexIndex + 2] = Vector2.one;
+            uv[vertexIndex + 3] = Vector2.right;
+
+            int triangleIndex = side * 6;
+            triangles[triangleIndex] = vertexIndex;
+            triangles[triangleIndex + 1] = vertexIndex + 1;
+            triangles[triangleIndex + 2] = vertexIndex + 2;
+            triangles[triangleIndex + 3] = vertexIndex;
+            triangles[triangleIndex + 4] = vertexIndex + 2;
+            triangles[triangleIndex + 5] = vertexIndex + 3;
+        }
+
+        Mesh mesh = new Mesh
+        {
+            name = "Task2_" + SanitizeName(surface.Name) + "_BorderMesh",
+            vertices = vertices,
+            triangles = triangles,
+            uv = uv
+        };
+
+        mesh.RecalculateNormals();
+        mesh.RecalculateBounds();
+        return mesh;
+    }
+
+    private static Vector3 SurfaceVertex(SurfaceKind kind, Vector2 point)
+    {
+        return kind == SurfaceKind.Floor
+            ? new Vector3(point.x, 0f, point.y)
+            : new Vector3(point.x, point.y, 0f);
+    }
+
+    private static Mesh CreateFloorGridMesh(SurfaceDefinition surface, float gridSpacing, float lineThickness)
+    {
+        float width = Mathf.Max(0.01f, surface.Size.x);
+        float height = Mathf.Max(0.01f, surface.Size.y);
+        float halfWidth = width * 0.5f;
+        float halfHeight = height * 0.5f;
+        float spacing = Mathf.Max(0.1f, gridSpacing);
+        float thickness = Mathf.Clamp(lineThickness, 0.005f, spacing * 0.25f);
+
+        List<Vector3> vertices = new List<Vector3>();
+        List<Vector2> uv = new List<Vector2>();
+        List<int> triangles = new List<int>();
+
+        for (float x = -halfWidth; x <= halfWidth + 0.001f; x += spacing)
+        {
+            AddFloorStrip(vertices, uv, triangles, x - thickness * 0.5f, -halfHeight, x + thickness * 0.5f, halfHeight);
+        }
+
+        for (float z = -halfHeight; z <= halfHeight + 0.001f; z += spacing)
+        {
+            AddFloorStrip(vertices, uv, triangles, -halfWidth, z - thickness * 0.5f, halfWidth, z + thickness * 0.5f);
+        }
+
+        Mesh mesh = new Mesh
+        {
+            name = "Task2_" + SanitizeName(surface.Name) + "_GridMesh",
+            vertices = vertices.ToArray(),
+            triangles = triangles.ToArray(),
+            uv = uv.ToArray()
+        };
+
+        mesh.RecalculateNormals();
+        mesh.RecalculateBounds();
+        return mesh;
+    }
+
+    private static void AddFloorStrip(
+        List<Vector3> vertices,
+        List<Vector2> uv,
+        List<int> triangles,
+        float minX,
+        float minZ,
+        float maxX,
+        float maxZ)
+    {
+        int start = vertices.Count;
+        vertices.Add(new Vector3(minX, 0f, minZ));
+        vertices.Add(new Vector3(minX, 0f, maxZ));
+        vertices.Add(new Vector3(maxX, 0f, maxZ));
+        vertices.Add(new Vector3(maxX, 0f, minZ));
+
+        uv.Add(Vector2.zero);
+        uv.Add(Vector2.up);
+        uv.Add(Vector2.one);
+        uv.Add(Vector2.right);
+
+        triangles.Add(start);
+        triangles.Add(start + 1);
+        triangles.Add(start + 2);
+        triangles.Add(start);
+        triangles.Add(start + 2);
+        triangles.Add(start + 3);
+    }
+
     private Material CreateSurfaceMaterialInstance(Color color)
     {
         Material material = new Material(GetSurfaceMaterial());
@@ -815,16 +963,7 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
             return _surfaceMaterial;
         }
 
-        Shader shader = Shader.Find("EnvironmentDepth/URP/OcclusionUnlit");
-        if (shader == null)
-        {
-            shader = Shader.Find("Meta/EnvironmentDepth/Built-in Render Pipeline/OcclusionUnlit");
-        }
-
-        if (shader == null)
-        {
-            shader = Shader.Find("Universal Render Pipeline/Unlit");
-        }
+        Shader shader = Shader.Find("Universal Render Pipeline/Unlit");
         if (shader == null)
         {
             shader = Shader.Find("Unlit/Color");
