@@ -52,7 +52,7 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
             LocalPosition = Vector3.zero,
             LocalEulerAngles = Vector3.zero,
             Size = new Vector2(200f, 200f),
-            Color = new Color(0.08f, 0.42f, 1f, 0.08f)
+            Color = new Color(0.08f, 0.42f, 1f, 0.015f)
         },
         new SurfaceDefinition
         {

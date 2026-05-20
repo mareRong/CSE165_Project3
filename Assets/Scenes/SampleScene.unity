@@ -2148,7 +2148,7 @@ MonoBehaviour:
     LocalPosition: {x: 0, y: 0, z: 0}
     LocalEulerAngles: {x: 0, y: 0, z: 0}
     Size: {x: 200, y: 200}
-    Color: {r: 0.08, g: 0.42, b: 1, a: 0.08}
+    Color: {r: 0.08, g: 0.42, b: 1, a: 0.015}
   - Name: Front Wall
     Kind: 1
     LocalPosition: {x: 0, y: 1.25, z: 2.3}

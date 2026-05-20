@@ -28,6 +28,11 @@ public sealed class MixedRealityPassthroughRuntimeConfig : MonoBehaviour
         ConfigureEnvironmentDepth();
     }
 
+    private void LateUpdate()
+    {
+        ConfigurePassthrough();
+    }
+
     private void ConfigurePassthrough()
     {
         OVRManager manager = OVRManager.instance;
@@ -47,10 +52,10 @@ public sealed class MixedRealityPassthroughRuntimeConfig : MonoBehaviour
             return;
         }
 
-#pragma warning disable 0618
+#pragma warning disable CS0618
         activeLayer.overlayType = OVROverlay.OverlayType.Underlay;
         activeLayer.projectionSurfaceType = OVRPassthroughLayer.ProjectionSurfaceType.Reconstructed;
-#pragma warning restore 0618
+#pragma warning restore CS0618
         activeLayer.hidden = false;
         activeLayer.textureOpacity = 1f;
         activeLayer.enabled = true;
@@ -141,7 +146,7 @@ public sealed class MixedRealityPassthroughRuntimeConfig : MonoBehaviour
             return;
         }
 
-        Component depthManager = FindFirstObjectByType(depthManagerType) as Component;
+        Component depthManager = FindFirstComponentOfType(depthManagerType);
         if (depthManager == null)
         {
             depthManager = gameObject.AddComponent(depthManagerType);
@@ -163,5 +168,23 @@ public sealed class MixedRealityPassthroughRuntimeConfig : MonoBehaviour
         occlusionModeProperty?.SetValue(depthManager, softOcclusion);
         depthManager.enabled = true;
         Debug.Log("Task 2 environment depth occlusion is enabled for the wall/floor overlays.", this);
+    }
+
+    private static Component FindFirstComponentOfType(Type componentType)
+    {
+        Component[] components = FindObjectsByType<Component>(
+            FindObjectsInactive.Include,
+            FindObjectsSortMode.None);
+
+        for (int i = 0; i < components.Length; i++)
+        {
+            Component component = components[i];
+            if (component != null && componentType.IsInstanceOfType(component))
+            {
+                return component;
+            }
+        }
+
+        return null;
     }
 }
