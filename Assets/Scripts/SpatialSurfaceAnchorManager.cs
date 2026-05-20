@@ -28,15 +28,16 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
     [SerializeField] private bool _rebuildExistingSurfaces = true;
     [SerializeField] private bool _addMeshColliders = true;
     [SerializeField] private bool _useDetectedRoomWalls = true;
+    [SerializeField] private bool _showConfiguredWallsWhileDetecting = true;
     [SerializeField] private bool _requestSceneCaptureIfNoRoom = true;
     [SerializeField] private bool _useConfiguredWallsWhenDetectionFails = true;
-    [SerializeField] private Color _wallOverlayColor = new Color(1f, 0.86f, 0.05f, 0.38f);
+    [SerializeField] private Color _wallOverlayColor = new Color(1f, 0.82f, 0f, 0.72f);
     [SerializeField] private string _surfaceLayerName = "Surface";
-    [SerializeField] private float _floorWorldY = -1.25f;
+    [SerializeField] private float _floorWorldY = -2.5f;
     [SerializeField] private bool _centerFloorUnderInitialHeadset = true;
-    [SerializeField] private bool _lockFloorToAvatarFeet = true;
-    [SerializeField] private bool _waitForTrackedHeadsetBeforeLockingFloor = true;
-    [SerializeField] private float _floorLockDelay = 0.5f;
+    [SerializeField] private bool _lockFloorToAvatarFeet = false;
+    [SerializeField] private bool _waitForTrackedHeadsetBeforeLockingFloor = false;
+    [SerializeField] private float _floorLockDelay = 0f;
     [SerializeField] private float _floorOffsetBelowAvatar = 0.01f;
     [SerializeField] private SurfaceDefinition[] _surfaces =
     {
@@ -56,7 +57,7 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
             LocalPosition = new Vector3(0f, 1.25f, 2.3f),
             LocalEulerAngles = new Vector3(0f, 180f, 0f),
             Size = new Vector2(3f, 2.5f),
-            Color = new Color(1f, 0.86f, 0.05f, 0.38f)
+            Color = new Color(1f, 0.82f, 0f, 0.72f)
         },
         new SurfaceDefinition
         {
@@ -65,7 +66,7 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
             LocalPosition = new Vector3(0f, 1.25f, -0.7f),
             LocalEulerAngles = Vector3.zero,
             Size = new Vector2(3f, 2.5f),
-            Color = new Color(1f, 0.86f, 0.05f, 0.38f)
+            Color = new Color(1f, 0.82f, 0f, 0.72f)
         },
         new SurfaceDefinition
         {
@@ -74,7 +75,7 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
             LocalPosition = new Vector3(-1.5f, 1.25f, 0.8f),
             LocalEulerAngles = new Vector3(0f, 90f, 0f),
             Size = new Vector2(3f, 2.5f),
-            Color = new Color(1f, 0.86f, 0.05f, 0.38f)
+            Color = new Color(1f, 0.82f, 0f, 0.72f)
         },
         new SurfaceDefinition
         {
@@ -83,12 +84,13 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
             LocalPosition = new Vector3(1.5f, 1.25f, 0.8f),
             LocalEulerAngles = new Vector3(0f, -90f, 0f),
             Size = new Vector2(3f, 2.5f),
-            Color = new Color(1f, 0.86f, 0.05f, 0.38f)
+            Color = new Color(1f, 0.82f, 0f, 0.72f)
         }
     };
 
     private const string RootName = "[Task 2] Spatial Surface Anchors";
     private readonly List<GameObject> _createdSurfaces = new List<GameObject>();
+    private readonly List<ConfiguredWallAnchor> _configuredWallAnchors = new List<ConfiguredWallAnchor>();
     private Material _surfaceMaterial;
     private Transform _floorAnchor;
     private Vector3 _lockedFloorPosition;
@@ -96,6 +98,12 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
     private bool _hasLockedFloorPose;
     private float _floorLockStartTime;
     private SurfaceDefinition _pendingFloorLockSurface;
+
+    private sealed class ConfiguredWallAnchor
+    {
+        public Transform Anchor;
+        public SurfaceDefinition Surface;
+    }
 
     private void Start()
     {
@@ -143,7 +151,7 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
                 continue;
             }
 
-            if (_useDetectedRoomWalls && surface.Kind == SurfaceKind.Wall)
+            if (_useDetectedRoomWalls && surface.Kind == SurfaceKind.Wall && !_showConfiguredWallsWhileDetecting)
             {
                 continue;
             }
@@ -169,6 +177,7 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
         }
 
         _createdSurfaces.Clear();
+        _configuredWallAnchors.Clear();
         _floorAnchor = null;
         _hasLockedFloorPose = false;
         _pendingFloorLockSurface = null;
@@ -211,6 +220,14 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
         else
         {
             anchorObject.AddComponent<OVRSpatialAnchor>();
+            if (surface.Kind == SurfaceKind.Wall)
+            {
+                _configuredWallAnchors.Add(new ConfiguredWallAnchor
+                {
+                    Anchor = anchorObject.transform,
+                    Surface = surface
+                });
+            }
         }
 
         _createdSurfaces.Add(anchorObject);
@@ -230,7 +247,7 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
         catch (Exception exception)
         {
             Debug.LogWarning($"Task 2 wall detection failed, using configured yellow walls instead. {exception}", this);
-            if (root != null && _useConfiguredWallsWhenDetectionFails)
+            if (root != null && _useConfiguredWallsWhenDetectionFails && _configuredWallAnchors.Count == 0)
             {
                 CreateConfiguredWallAnchors(root);
             }
@@ -267,14 +284,19 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
             }
         }
 
-        if (wallCount == 0 && _useConfiguredWallsWhenDetectionFails)
+        if (wallCount > 0)
+        {
+            RemoveConfiguredWallAnchors();
+            Debug.Log($"Task 2 created {wallCount} detected yellow wall anchors from the room scene model.", this);
+        }
+        else if (_configuredWallAnchors.Count > 0)
+        {
+            Debug.Log($"Room wall detection did not return any walls, so Task 2 is keeping {_configuredWallAnchors.Count} configured yellow wall anchors.", this);
+        }
+        else if (_useConfiguredWallsWhenDetectionFails)
         {
             wallCount = CreateConfiguredWallAnchors(root);
             Debug.Log($"No detected room walls were available, so Task 2 created {wallCount} configured yellow wall anchors.", this);
-        }
-        else
-        {
-            Debug.Log($"Task 2 created {wallCount} detected yellow wall anchors from the room scene model.", this);
         }
     }
 
@@ -291,6 +313,21 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
         }
 
         return wallCount;
+    }
+
+    private void RemoveConfiguredWallAnchors()
+    {
+        for (int i = _configuredWallAnchors.Count - 1; i >= 0; i--)
+        {
+            Transform wallAnchor = _configuredWallAnchors[i].Anchor;
+            if (wallAnchor != null)
+            {
+                _createdSurfaces.Remove(wallAnchor.gameObject);
+                DestroySurfaceObject(wallAnchor.gameObject);
+            }
+        }
+
+        _configuredWallAnchors.Clear();
     }
 
     private async Task<int> CreateDetectedRoomWallAnchors(Transform root, OVRAnchor room, int existingWallCount)
@@ -414,8 +451,7 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
         meshFilter.sharedMesh = CreateSurfaceMesh(visualDefinition);
 
         MeshRenderer meshRenderer = meshObject.AddComponent<MeshRenderer>();
-        meshRenderer.sharedMaterial = GetSurfaceMaterial();
-        meshRenderer.material.color = ResolveSurfaceColor(visualDefinition);
+        meshRenderer.sharedMaterial = CreateSurfaceMaterialInstance(ResolveSurfaceColor(visualDefinition));
 
         if (_addMeshColliders)
         {
@@ -445,19 +481,43 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
             return ResolveFloorWorldPosition(surface);
         }
 
-        Vector3 originPosition = _origin != null ? _origin.position : Vector3.zero;
-        Vector3 originForward = _origin != null ? _origin.forward : Vector3.forward;
-        Vector3 flattenedForward = Vector3.ProjectOnPlane(originForward, Vector3.up).normalized;
-        if (flattenedForward.sqrMagnitude < 0.001f)
-        {
-            flattenedForward = Vector3.forward;
-        }
-
-        Quaternion yawOnly = Quaternion.LookRotation(flattenedForward, Vector3.up);
+        Vector3 originPosition = ResolveConfiguredRoomOriginPosition();
+        Quaternion yawOnly = ResolveConfiguredRoomYaw();
         Vector3 localPlanarOffset = new Vector3(surface.LocalPosition.x, 0f, surface.LocalPosition.z);
         Vector3 worldPosition = originPosition + yawOnly * localPlanarOffset;
-        worldPosition.y = _floorWorldY + surface.LocalPosition.y;
+        worldPosition.y = ResolveConfiguredRoomFloorY() + surface.LocalPosition.y;
         return worldPosition;
+    }
+
+    private Vector3 ResolveConfiguredRoomOriginPosition()
+    {
+        if (_hasLockedFloorPose)
+        {
+            return _lockedFloorPosition;
+        }
+
+        if (_origin != null)
+        {
+            return _origin.position;
+        }
+
+        Transform centerReference = GetInitialFloorCenterReference();
+        return centerReference != null ? centerReference.position : Vector3.zero;
+    }
+
+    private float ResolveConfiguredRoomFloorY()
+    {
+        if (_hasLockedFloorPose)
+        {
+            return _lockedFloorPosition.y;
+        }
+
+        if (_lockFloorToAvatarFeet && TryGetAvatarFootY(out float avatarFootY))
+        {
+            return avatarFootY - Mathf.Max(0f, _floorOffsetBelowAvatar);
+        }
+
+        return _floorWorldY;
     }
 
     private Vector3 ResolveFloorWorldPosition(SurfaceDefinition surface)
@@ -554,11 +614,28 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
         _lockedFloorRotation = Quaternion.identity;
         _hasLockedFloorPose = true;
         _floorAnchor.SetPositionAndRotation(_lockedFloorPosition, _lockedFloorRotation);
+        RepositionConfiguredWallAnchors();
 
         Debug.Log(
             $"Task 2 floor locked at world position {_lockedFloorPosition} with size {surface.Size}. " +
             "It is not parented to the headset and does not use OVRSpatialAnchor.",
             floorAnchor);
+    }
+
+    private void RepositionConfiguredWallAnchors()
+    {
+        for (int i = 0; i < _configuredWallAnchors.Count; i++)
+        {
+            ConfiguredWallAnchor wallAnchor = _configuredWallAnchors[i];
+            if (wallAnchor.Anchor == null || wallAnchor.Surface == null)
+            {
+                continue;
+            }
+
+            wallAnchor.Anchor.SetPositionAndRotation(
+                TransformSurfacePoint(wallAnchor.Surface),
+                TransformRotation(wallAnchor.Surface.LocalEulerAngles));
+        }
     }
 
     private void TryLockFloorPose(Transform floorAnchor, SurfaceDefinition surface)
@@ -590,14 +667,28 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
 
     private Quaternion TransformRotation(Vector3 localEulerAngles)
     {
+        return ResolveConfiguredRoomYaw() * Quaternion.Euler(localEulerAngles);
+    }
+
+    private Quaternion ResolveConfiguredRoomYaw()
+    {
         Vector3 originForward = _origin != null ? _origin.forward : Vector3.forward;
+        if (_origin == null)
+        {
+            Transform centerReference = GetInitialFloorCenterReference();
+            if (centerReference != null)
+            {
+                originForward = centerReference.forward;
+            }
+        }
+
         Vector3 flattenedForward = Vector3.ProjectOnPlane(originForward, Vector3.up).normalized;
         if (flattenedForward.sqrMagnitude < 0.001f)
         {
             flattenedForward = Vector3.forward;
         }
 
-        return Quaternion.LookRotation(flattenedForward, Vector3.up) * Quaternion.Euler(localEulerAngles);
+        return Quaternion.LookRotation(flattenedForward, Vector3.up);
     }
 
     private static Mesh CreateSurfaceMesh(SurfaceDefinition surface)
@@ -644,6 +735,26 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
         mesh.RecalculateNormals();
         mesh.RecalculateBounds();
         return mesh;
+    }
+
+    private Material CreateSurfaceMaterialInstance(Color color)
+    {
+        Material material = new Material(GetSurfaceMaterial());
+        ApplyColorToMaterial(material, color);
+        return material;
+    }
+
+    private static void ApplyColorToMaterial(Material material, Color color)
+    {
+        if (material.HasProperty("_BaseColor"))
+        {
+            material.SetColor("_BaseColor", color);
+        }
+
+        if (material.HasProperty("_Color"))
+        {
+            material.SetColor("_Color", color);
+        }
     }
 
     private Material GetSurfaceMaterial()

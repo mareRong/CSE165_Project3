@@ -2127,15 +2127,16 @@ MonoBehaviour:
   _rebuildExistingSurfaces: 1
   _addMeshColliders: 1
   _useDetectedRoomWalls: 1
+  _showConfiguredWallsWhileDetecting: 1
   _requestSceneCaptureIfNoRoom: 1
   _useConfiguredWallsWhenDetectionFails: 1
-  _wallOverlayColor: {r: 1, g: 0.86, b: 0.05, a: 0.38}
+  _wallOverlayColor: {r: 1, g: 0.82, b: 0, a: 0.72}
   _surfaceLayerName: Surface
-  _floorWorldY: -1.25
+  _floorWorldY: -2.5
   _centerFloorUnderInitialHeadset: 1
-  _lockFloorToAvatarFeet: 1
-  _waitForTrackedHeadsetBeforeLockingFloor: 1
-  _floorLockDelay: 0.5
+  _lockFloorToAvatarFeet: 0
+  _waitForTrackedHeadsetBeforeLockingFloor: 0
+  _floorLockDelay: 0
   _floorOffsetBelowAvatar: 0.01
   _surfaces:
   - Name: Floor
@@ -2149,25 +2150,25 @@ MonoBehaviour:
     LocalPosition: {x: 0, y: 1.25, z: 2.3}
     LocalEulerAngles: {x: 0, y: 180, z: 0}
     Size: {x: 3, y: 2.5}
-    Color: {r: 1, g: 0.86, b: 0.05, a: 0.38}
+    Color: {r: 1, g: 0.82, b: 0, a: 0.72}
   - Name: Back Wall
     Kind: 1
     LocalPosition: {x: 0, y: 1.25, z: -0.7}
     LocalEulerAngles: {x: 0, y: 0, z: 0}
     Size: {x: 3, y: 2.5}
-    Color: {r: 1, g: 0.86, b: 0.05, a: 0.38}
+    Color: {r: 1, g: 0.82, b: 0, a: 0.72}
   - Name: Left Wall
     Kind: 1
     LocalPosition: {x: -1.5, y: 1.25, z: 0.8}
     LocalEulerAngles: {x: 0, y: 90, z: 0}
     Size: {x: 3, y: 2.5}
-    Color: {r: 1, g: 0.86, b: 0.05, a: 0.38}
+    Color: {r: 1, g: 0.82, b: 0, a: 0.72}
   - Name: Right Wall
     Kind: 1
     LocalPosition: {x: 1.5, y: 1.25, z: 0.8}
     LocalEulerAngles: {x: 0, y: -90, z: 0}
     Size: {x: 3, y: 2.5}
-    Color: {r: 1, g: 0.86, b: 0.05, a: 0.38}
+    Color: {r: 1, g: 0.82, b: 0, a: 0.72}
 --- !u!1 &2144580149
 GameObject:
   m_ObjectHideFlags: 0
