@@ -371,7 +371,7 @@ public class HandTrackingPinning : MonoBehaviour
         if (agentTravel != null)
             return;
 
-        agentTravel = FindObjectOfType<AgentTravel>();
+        agentTravel = FindAnyObjectByType<AgentTravel>();
     }
 
     private bool TryGetPalmPose(XRHand hand, out Pose pose)

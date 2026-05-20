@@ -460,7 +460,7 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
 
     private Transform ResolveTrackingSpace()
     {
-        OVRCameraRig cameraRig = FindFirstObjectByType<OVRCameraRig>();
+        OVRCameraRig cameraRig = FindAnyObjectByType<OVRCameraRig>();
         if (cameraRig != null && cameraRig.trackingSpace != null)
         {
             return cameraRig.trackingSpace;
@@ -604,7 +604,7 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
     {
         footY = 0f;
 
-        AgentTravel agentTravel = FindFirstObjectByType<AgentTravel>();
+        AgentTravel agentTravel = FindAnyObjectByType<AgentTravel>();
         Transform avatar = agentTravel != null ? agentTravel.avatar : null;
         if (avatar == null && agentTravel != null)
         {
@@ -641,7 +641,7 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
             return mainCamera.transform;
         }
 
-        AgentTravel agentTravel = FindFirstObjectByType<AgentTravel>();
+        AgentTravel agentTravel = FindAnyObjectByType<AgentTravel>();
         if (agentTravel == null)
         {
             return null;
