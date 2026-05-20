@@ -34,7 +34,7 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
     [SerializeField] private bool _useConfiguredWallsWhenDetectionFails = false;
     [SerializeField] private int _detectedRoomWallFetchAttempts = 20;
     [SerializeField] private float _detectedRoomWallFetchRetryDelaySeconds = 0.75f;
-    [SerializeField] private Color _wallOverlayColor = new Color(1f, 0.62f, 0.18f, 1f);
+    [SerializeField] private Color _wallOverlayColor = new Color(1f, 0.82f, 0f, 1f);
     [SerializeField] private string _surfaceLayerName = "Surface";
     [SerializeField] private float _floorWorldY = 0f;
     [SerializeField] private float _configuredWallBaseWorldY = 0f;
@@ -62,7 +62,7 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
             LocalPosition = new Vector3(0f, 1.25f, 2.3f),
             LocalEulerAngles = new Vector3(0f, 180f, 0f),
             Size = new Vector2(3f, 2.5f),
-            Color = new Color(1f, 0.62f, 0.18f, 1f)
+            Color = new Color(1f, 0.82f, 0f, 1f)
         },
         new SurfaceDefinition
         {
@@ -71,7 +71,7 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
             LocalPosition = new Vector3(0f, 1.25f, -0.7f),
             LocalEulerAngles = Vector3.zero,
             Size = new Vector2(3f, 2.5f),
-            Color = new Color(1f, 0.62f, 0.18f, 1f)
+            Color = new Color(1f, 0.82f, 0f, 1f)
         },
         new SurfaceDefinition
         {
@@ -80,7 +80,7 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
             LocalPosition = new Vector3(-1.5f, 1.25f, 0.8f),
             LocalEulerAngles = new Vector3(0f, 90f, 0f),
             Size = new Vector2(3f, 2.5f),
-            Color = new Color(1f, 0.62f, 0.18f, 1f)
+            Color = new Color(1f, 0.82f, 0f, 1f)
         },
         new SurfaceDefinition
         {
@@ -89,14 +89,15 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
             LocalPosition = new Vector3(1.5f, 1.25f, 0.8f),
             LocalEulerAngles = new Vector3(0f, -90f, 0f),
             Size = new Vector2(3f, 2.5f),
-            Color = new Color(1f, 0.62f, 0.18f, 1f)
+            Color = new Color(1f, 0.82f, 0f, 1f)
         }
     };
 
     private const string RootName = "[Task 2] Spatial Surface Anchors";
     private readonly List<GameObject> _createdSurfaces = new List<GameObject>();
     private readonly List<ConfiguredWallAnchor> _configuredWallAnchors = new List<ConfiguredWallAnchor>();
-    private Material _surfaceMaterial;
+    private Material _transparentSurfaceMaterial;
+    private Material _opaqueWallMaterial;
     private Transform _floorAnchor;
     private Vector3 _lockedFloorPosition;
     private Quaternion _lockedFloorRotation;
@@ -495,7 +496,9 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
         meshFilter.sharedMesh = CreateSurfaceMesh(visualDefinition, false);
 
         MeshRenderer meshRenderer = meshObject.AddComponent<MeshRenderer>();
-        meshRenderer.sharedMaterial = CreateSurfaceMaterialInstance(ResolveSurfaceColor(visualDefinition));
+        meshRenderer.sharedMaterial = CreateSurfaceMaterialInstance(
+            visualDefinition.Kind,
+            ResolveSurfaceColor(visualDefinition));
 
         if (_addMeshColliders)
         {
@@ -797,9 +800,9 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
         return mesh;
     }
 
-    private Material CreateSurfaceMaterialInstance(Color color)
+    private Material CreateSurfaceMaterialInstance(SurfaceKind surfaceKind, Color color)
     {
-        Material material = new Material(GetSurfaceMaterial());
+        Material material = new Material(GetSurfaceMaterial(surfaceKind));
         ApplyColorToMaterial(material, color);
         return material;
     }
@@ -817,11 +820,70 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
         }
     }
 
-    private Material GetSurfaceMaterial()
+    private Material GetSurfaceMaterial(SurfaceKind surfaceKind)
     {
-        if (_surfaceMaterial != null)
+        return surfaceKind == SurfaceKind.Wall ? GetOpaqueWallMaterial() : GetTransparentSurfaceMaterial();
+    }
+
+    private Material GetOpaqueWallMaterial()
+    {
+        if (_opaqueWallMaterial != null)
         {
-            return _surfaceMaterial;
+            return _opaqueWallMaterial;
+        }
+
+        Shader shader = Shader.Find("Task2/Opaque Color");
+        if (shader == null)
+        {
+            shader = Shader.Find("Unlit/Color");
+        }
+
+        if (shader == null)
+        {
+            shader = Shader.Find("Universal Render Pipeline/Unlit");
+        }
+
+        _opaqueWallMaterial = new Material(shader)
+        {
+            name = "Task2_Spatial_Wall_Opaque"
+        };
+
+        if (_opaqueWallMaterial.HasProperty("_Surface"))
+        {
+            _opaqueWallMaterial.SetFloat("_Surface", 0f);
+        }
+
+        if (_opaqueWallMaterial.HasProperty("_SrcBlend"))
+        {
+            _opaqueWallMaterial.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.One);
+        }
+
+        if (_opaqueWallMaterial.HasProperty("_DstBlend"))
+        {
+            _opaqueWallMaterial.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.Zero);
+        }
+
+        if (_opaqueWallMaterial.HasProperty("_ZWrite"))
+        {
+            _opaqueWallMaterial.SetFloat("_ZWrite", 1f);
+        }
+
+        if (_opaqueWallMaterial.HasProperty("_Cull"))
+        {
+            _opaqueWallMaterial.SetFloat("_Cull", (float)UnityEngine.Rendering.CullMode.Off);
+        }
+
+        _opaqueWallMaterial.DisableKeyword("_SURFACE_TYPE_TRANSPARENT");
+        _opaqueWallMaterial.DisableKeyword("_ALPHABLEND_ON");
+        _opaqueWallMaterial.renderQueue = 2000;
+        return _opaqueWallMaterial;
+    }
+
+    private Material GetTransparentSurfaceMaterial()
+    {
+        if (_transparentSurfaceMaterial != null)
+        {
+            return _transparentSurfaceMaterial;
         }
 
         Shader shader = Shader.Find("Task2/Transparent Color");
@@ -845,44 +907,44 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
             shader = Shader.Find("Unlit/Color");
         }
 
-        _surfaceMaterial = new Material(shader)
+        _transparentSurfaceMaterial = new Material(shader)
         {
             name = "Task2_Spatial_Surface_Overlay"
         };
-        if (_surfaceMaterial.HasProperty("_Surface"))
+        if (_transparentSurfaceMaterial.HasProperty("_Surface"))
         {
-            _surfaceMaterial.SetFloat("_Surface", 1f);
+            _transparentSurfaceMaterial.SetFloat("_Surface", 1f);
         }
 
-        if (_surfaceMaterial.HasProperty("_Blend"))
+        if (_transparentSurfaceMaterial.HasProperty("_Blend"))
         {
-            _surfaceMaterial.SetFloat("_Blend", 0f);
+            _transparentSurfaceMaterial.SetFloat("_Blend", 0f);
         }
 
-        if (_surfaceMaterial.HasProperty("_SrcBlend"))
+        if (_transparentSurfaceMaterial.HasProperty("_SrcBlend"))
         {
-            _surfaceMaterial.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
+            _transparentSurfaceMaterial.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
         }
 
-        if (_surfaceMaterial.HasProperty("_DstBlend"))
+        if (_transparentSurfaceMaterial.HasProperty("_DstBlend"))
         {
-            _surfaceMaterial.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+            _transparentSurfaceMaterial.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
         }
 
-        if (_surfaceMaterial.HasProperty("_ZWrite"))
+        if (_transparentSurfaceMaterial.HasProperty("_ZWrite"))
         {
-            _surfaceMaterial.SetFloat("_ZWrite", 0f);
+            _transparentSurfaceMaterial.SetFloat("_ZWrite", 0f);
         }
 
-        if (_surfaceMaterial.HasProperty("_Cull"))
+        if (_transparentSurfaceMaterial.HasProperty("_Cull"))
         {
-            _surfaceMaterial.SetFloat("_Cull", (float)UnityEngine.Rendering.CullMode.Off);
+            _transparentSurfaceMaterial.SetFloat("_Cull", (float)UnityEngine.Rendering.CullMode.Off);
         }
 
-        _surfaceMaterial.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
-        _surfaceMaterial.EnableKeyword("_ALPHABLEND_ON");
-        _surfaceMaterial.renderQueue = 3000;
-        return _surfaceMaterial;
+        _transparentSurfaceMaterial.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+        _transparentSurfaceMaterial.EnableKeyword("_ALPHABLEND_ON");
+        _transparentSurfaceMaterial.renderQueue = 3000;
+        return _transparentSurfaceMaterial;
     }
 
     private static string SanitizeName(string value)
