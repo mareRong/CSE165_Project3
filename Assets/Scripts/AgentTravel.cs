@@ -7,6 +7,8 @@ using UnityEngine.AI;
 [RequireComponent(typeof(Animator))]
 public class AgentTravel : MonoBehaviour
 {
+    private static readonly int WalkingParameter = Animator.StringToHash("Walking");
+
     [Header("Agent")]
     public Transform avatar;
     public Animator avatarAnimator;
@@ -18,7 +20,7 @@ public class AgentTravel : MonoBehaviour
     public float bakeDelay = 2f;
 
     [Header("Movement")]
-    public float moveSpeed = 3f;
+    public float moveSpeed = 1.5f;
     public float rotationSpeed = 5f;
     public float stopDistance = 0.3f;
 
@@ -40,6 +42,7 @@ public class AgentTravel : MonoBehaviour
 
     private Vector3 targetPosition;
     private bool hasTarget;
+    private Animator[] animators = Array.Empty<Animator>();
 
     private IEnumerator Start()
     {
@@ -52,6 +55,8 @@ public class AgentTravel : MonoBehaviour
         {
             avatarAnimator = GetComponent<Animator>();
         }
+
+        CacheAnimators();
 
         if (navMeshAgent == null)
         {
@@ -237,11 +242,33 @@ public class AgentTravel : MonoBehaviour
         );
     }
 
+    private void CacheAnimators()
+    {
+        Transform searchRoot = avatar != null ? avatar : transform;
+        animators = searchRoot.GetComponentsInChildren<Animator>(true);
+
+        if ((avatarAnimator == null || avatarAnimator.runtimeAnimatorController == null) && animators.Length > 0)
+        {
+            avatarAnimator = animators[0];
+        }
+    }
+
     private void SetWalking(bool walking)
     {
-        if (avatarAnimator != null)
+        if (animators == null || animators.Length == 0)
         {
-            avatarAnimator.SetBool("Walking", walking);
+            CacheAnimators();
+        }
+
+        for (int i = 0; i < animators.Length; i++)
+        {
+            Animator animator = animators[i];
+            if (animator == null || animator.runtimeAnimatorController == null || !animator.HasParameterOfType(WalkingParameter, AnimatorControllerParameterType.Bool))
+            {
+                continue;
+            }
+
+            animator.SetBool(WalkingParameter, walking);
         }
     }
 
@@ -281,5 +308,21 @@ public class AgentTravel : MonoBehaviour
                 avatarAnimator.SetIKRotation(foot, footRotation);
             }
         }
+    }
+}
+
+internal static class AnimatorExtensions
+{
+    public static bool HasParameterOfType(this Animator animator, int parameterHash, AnimatorControllerParameterType parameterType)
+    {
+        foreach (AnimatorControllerParameter parameter in animator.parameters)
+        {
+            if (parameter.nameHash == parameterHash && parameter.type == parameterType)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

@@ -25,11 +25,19 @@ public class HandTrackingPinning : MonoBehaviour
     public float pinchThreshold = 0.035f;
 
     [Header("Ray Settings")]
-    public float rayForwardDistance = 3.5f;
+    [Min(0.1f)]
+    public float rayForwardDistance = 4f;
+    [Min(0f)]
     public float rayCurveHeight = 0.6f;
+    [Min(0f)]
     public float rayVerticalDrop = 0.8f;
+    [Min(2)]
     public int raySegments = 24;
+    [Min(0.001f)]
     public float rayWidth = 0.01f;
+    public bool useSphereCast = true;
+    [Min(0f)]
+    public float raycastRadius = 0.03f;
     public Color rayColor = new Color(0.2f, 0.85f, 1f, 0.95f);
 
     [Header("Preview Pulse Animation")]
@@ -60,6 +68,18 @@ public class HandTrackingPinning : MonoBehaviour
 
     private GameObject currentPin;
     private Coroutine statusCoroutine;
+
+    private void OnValidate()
+    {
+        rayForwardDistance = Mathf.Max(0.1f, rayForwardDistance);
+        rayCurveHeight = Mathf.Max(0f, rayCurveHeight);
+        rayVerticalDrop = Mathf.Max(0f, rayVerticalDrop);
+        raySegments = Mathf.Max(2, raySegments);
+        rayWidth = Mathf.Max(0.001f, rayWidth);
+        raycastRadius = Mathf.Max(0f, raycastRadius);
+        minPreviewAlpha = Mathf.Clamp01(minPreviewAlpha);
+        maxPreviewAlpha = Mathf.Clamp01(maxPreviewAlpha);
+    }
 
     void Start()
     {
@@ -216,6 +236,7 @@ public class HandTrackingPinning : MonoBehaviour
             return;
 
         EnsureCurvedRay();
+        SyncCurvedRayAppearance();
 
         Vector3 startPoint = wristPose.position;
         Vector3 forward = indexPose.position - wristPose.position;
@@ -247,7 +268,7 @@ public class HandTrackingPinning : MonoBehaviour
                 Vector3 direction = point - previousPoint;
                 float distance = direction.magnitude;
 
-                if (Physics.Raycast(previousPoint, direction.normalized, out RaycastHit hit, distance, raycastMask))
+                if (TryRaycastSegment(previousPoint, direction, distance, raycastMask, out RaycastHit hit))
                 {
                     currentRayEndPoint = hit.point;
                     hasValidRayHit = true;
@@ -335,6 +356,24 @@ public class HandTrackingPinning : MonoBehaviour
         hasValidRayHit = false;
     }
 
+    private bool TryRaycastSegment(Vector3 origin, Vector3 direction, float distance, LayerMask raycastMask, out RaycastHit hit)
+    {
+        if (distance <= 0.0001f)
+        {
+            hit = default;
+            return false;
+        }
+
+        Vector3 normalizedDirection = direction / distance;
+
+        if (useSphereCast && raycastRadius > 0f)
+        {
+            return Physics.SphereCast(origin, raycastRadius, normalizedDirection, out hit, distance, raycastMask);
+        }
+
+        return Physics.Raycast(origin, normalizedDirection, out hit, distance, raycastMask);
+    }
+
     private void ShowStatusMessage(string message)
     {
         if (statusText == null)
@@ -420,6 +459,16 @@ public class HandTrackingPinning : MonoBehaviour
         curvedRay.numCapVertices = 6;
         curvedRay.numCornerVertices = 4;
         curvedRay.material = new Material(Shader.Find("Sprites/Default"));
+        curvedRay.startColor = rayColor;
+        curvedRay.endColor = rayColor;
+    }
+
+    private void SyncCurvedRayAppearance()
+    {
+        if (curvedRay == null)
+            return;
+
+        curvedRay.widthMultiplier = rayWidth;
         curvedRay.startColor = rayColor;
         curvedRay.endColor = rayColor;
     }

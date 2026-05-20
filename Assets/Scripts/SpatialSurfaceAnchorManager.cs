@@ -28,6 +28,8 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
     [SerializeField] private bool _buildOnStart = true;
     [SerializeField] private bool _rebuildExistingSurfaces = true;
     [SerializeField] private bool _addMeshColliders = true;
+    [SerializeField] private bool _showFloorVisuals = true;
+    [SerializeField] private bool _showWallVisuals = true;
     [SerializeField] private bool _useDetectedRoomWalls = true;
     [SerializeField] private bool _showConfiguredWallsWhileDetecting = false;
     [SerializeField] private bool _requestSceneCaptureIfNoRoom = false;
@@ -499,6 +501,7 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
         meshRenderer.sharedMaterial = CreateSurfaceMaterialInstance(
             visualDefinition.Kind,
             ResolveSurfaceColor(visualDefinition));
+        meshRenderer.enabled = ShouldShowSurfaceVisual(visualDefinition.Kind);
 
         if (_addMeshColliders)
         {
@@ -510,6 +513,11 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
     private Color ResolveSurfaceColor(SurfaceDefinition surface)
     {
         return surface.Kind == SurfaceKind.Wall ? _wallOverlayColor : surface.Color;
+    }
+
+    private bool ShouldShowSurfaceVisual(SurfaceKind surfaceKind)
+    {
+        return surfaceKind == SurfaceKind.Wall ? _showWallVisuals : _showFloorVisuals;
     }
 
     private void ApplySurfaceLayer(GameObject target)
