@@ -9,6 +9,7 @@ public class HandTrackingPinning : MonoBehaviour
     private const string RuntimeRayName = "RuntimeCurvedRay";
     private const string RuntimePreviewName = "RuntimePinPreview";
     private const string RuntimePinName = "RuntimePin";
+    private const string SurfaceLayerName = "Surface";
 
     [Header("Travel Script")]
     public AgentTravel agentTravel;
@@ -64,6 +65,7 @@ public class HandTrackingPinning : MonoBehaviour
     private bool wasPinching = false;
 
     private Vector3 currentRayEndPoint;
+    private Vector3 currentRayHitNormal = Vector3.up;
     private bool hasValidRayHit = false;
 
     private GameObject currentPin;
@@ -251,7 +253,7 @@ public class HandTrackingPinning : MonoBehaviour
 
         Vector3[] points = new Vector3[raySegments];
         hasValidRayHit = false;
-        LayerMask raycastMask = groundLayer.value == 0 ? Physics.DefaultRaycastLayers : groundLayer;
+        LayerMask raycastMask = ResolveGroundRaycastMask();
 
         for (int i = 0; i < raySegments; i++)
         {
@@ -271,6 +273,7 @@ public class HandTrackingPinning : MonoBehaviour
                 if (TryRaycastSegment(previousPoint, direction, distance, raycastMask, out RaycastHit hit))
                 {
                     currentRayEndPoint = hit.point;
+                    currentRayHitNormal = ResolveGroundNormal(hit.normal);
                     hasValidRayHit = true;
 
                     for (int j = i; j < raySegments; j++)
@@ -295,10 +298,50 @@ public class HandTrackingPinning : MonoBehaviour
         if (pinPreviewCircle != null && hasValidRayHit)
         {
             pinPreviewCircle.SetActive(true);
-            pinPreviewCircle.transform.position = currentRayEndPoint + Vector3.up * 0.002f;
+            pinPreviewCircle.transform.position = currentRayEndPoint + currentRayHitNormal * 0.002f;
+            pinPreviewCircle.transform.rotation = Quaternion.FromToRotation(Vector3.up, currentRayHitNormal);
 
             PulsePreviewCircle();
         }
+    }
+
+    private LayerMask ResolveGroundRaycastMask()
+    {
+        int mask = groundLayer.value == 0 ? Physics.DefaultRaycastLayers : groundLayer.value;
+        int surfaceLayer = LayerMask.NameToLayer(SurfaceLayerName);
+        if (surfaceLayer >= 0)
+        {
+            mask |= 1 << surfaceLayer;
+        }
+
+        return mask;
+    }
+
+    private static bool IsGroundHit(RaycastHit hit)
+    {
+        SpatialSurfaceMarker marker = hit.collider.GetComponentInParent<SpatialSurfaceMarker>();
+        if (marker != null)
+        {
+            return marker.SurfaceKind == SpatialSurfaceAnchorManager.SurfaceKind.Floor;
+        }
+
+        return hit.normal.y > 0.5f;
+    }
+
+    private static Vector3 ResolveGroundNormal(Vector3 normal)
+    {
+        if (normal.sqrMagnitude < 0.001f)
+        {
+            return Vector3.up;
+        }
+
+        normal.Normalize();
+        if (normal.y < 0f)
+        {
+            normal = -normal;
+        }
+
+        return normal;
     }
 
     private void PulsePreviewCircle()
@@ -365,13 +408,29 @@ public class HandTrackingPinning : MonoBehaviour
         }
 
         Vector3 normalizedDirection = direction / distance;
+        RaycastHit[] hits = useSphereCast && raycastRadius > 0f
+            ? Physics.SphereCastAll(origin, raycastRadius, normalizedDirection, distance, raycastMask, QueryTriggerInteraction.Ignore)
+            : Physics.RaycastAll(origin, normalizedDirection, distance, raycastMask, QueryTriggerInteraction.Ignore);
 
-        if (useSphereCast && raycastRadius > 0f)
+        hit = default;
+        float bestDistance = float.PositiveInfinity;
+
+        for (int i = 0; i < hits.Length; i++)
         {
-            return Physics.SphereCast(origin, raycastRadius, normalizedDirection, out hit, distance, raycastMask);
+            RaycastHit candidateHit = hits[i];
+            if (candidateHit.collider == null || !IsGroundHit(candidateHit))
+            {
+                continue;
+            }
+
+            if (candidateHit.distance < bestDistance)
+            {
+                bestDistance = candidateHit.distance;
+                hit = candidateHit;
+            }
         }
 
-        return Physics.Raycast(origin, normalizedDirection, out hit, distance, raycastMask);
+        return bestDistance < float.PositiveInfinity;
     }
 
     private void ShowStatusMessage(string message)
