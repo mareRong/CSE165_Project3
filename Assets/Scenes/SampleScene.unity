@@ -2126,13 +2126,14 @@ MonoBehaviour:
   _buildOnStart: 1
   _rebuildExistingSurfaces: 1
   _addMeshColliders: 1
-  _useDetectedRoomWalls: 1
+  _useDetectedRoomWalls: 0
   _showConfiguredWallsWhileDetecting: 1
   _requestSceneCaptureIfNoRoom: 1
   _useConfiguredWallsWhenDetectionFails: 1
   _wallOverlayColor: {r: 1, g: 0.82, b: 0, a: 0.72}
   _surfaceLayerName: Surface
-  _floorWorldY: -2.5
+  _floorWorldY: -10
+  _configuredWallBaseWorldY: 0
   _centerFloorUnderInitialHeadset: 1
   _lockFloorToAvatarFeet: 0
   _waitForTrackedHeadsetBeforeLockingFloor: 0

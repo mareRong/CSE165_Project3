@@ -27,13 +27,14 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
     [SerializeField] private bool _buildOnStart = true;
     [SerializeField] private bool _rebuildExistingSurfaces = true;
     [SerializeField] private bool _addMeshColliders = true;
-    [SerializeField] private bool _useDetectedRoomWalls = true;
+    [SerializeField] private bool _useDetectedRoomWalls = false;
     [SerializeField] private bool _showConfiguredWallsWhileDetecting = true;
     [SerializeField] private bool _requestSceneCaptureIfNoRoom = true;
     [SerializeField] private bool _useConfiguredWallsWhenDetectionFails = true;
     [SerializeField] private Color _wallOverlayColor = new Color(1f, 0.82f, 0f, 0.72f);
     [SerializeField] private string _surfaceLayerName = "Surface";
-    [SerializeField] private float _floorWorldY = -2.5f;
+    [SerializeField] private float _floorWorldY = -10f;
+    [SerializeField] private float _configuredWallBaseWorldY = 0f;
     [SerializeField] private bool _centerFloorUnderInitialHeadset = true;
     [SerializeField] private bool _lockFloorToAvatarFeet = false;
     [SerializeField] private bool _waitForTrackedHeadsetBeforeLockingFloor = false;
@@ -507,17 +508,7 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
 
     private float ResolveConfiguredRoomFloorY()
     {
-        if (_hasLockedFloorPose)
-        {
-            return _lockedFloorPosition.y;
-        }
-
-        if (_lockFloorToAvatarFeet && TryGetAvatarFootY(out float avatarFootY))
-        {
-            return avatarFootY - Mathf.Max(0f, _floorOffsetBelowAvatar);
-        }
-
-        return _floorWorldY;
+        return _configuredWallBaseWorldY;
     }
 
     private Vector3 ResolveFloorWorldPosition(SurfaceDefinition surface)
