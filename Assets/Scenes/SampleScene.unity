@@ -2128,8 +2128,10 @@ MonoBehaviour:
   _addMeshColliders: 1
   _useDetectedRoomWalls: 1
   _showConfiguredWallsWhileDetecting: 0
-  _requestSceneCaptureIfNoRoom: 1
-  _useConfiguredWallsWhenDetectionFails: 1
+  _requestSceneCaptureIfNoRoom: 0
+  _useConfiguredWallsWhenDetectionFails: 0
+  _detectedRoomWallFetchAttempts: 8
+  _detectedRoomWallFetchRetryDelaySeconds: 0.75
   _wallOverlayColor: {r: 1, g: 0.82, b: 0, a: 0.72}
   _surfaceLayerName: Surface
   _floorWorldY: 0

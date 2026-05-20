@@ -29,8 +29,10 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
     [SerializeField] private bool _addMeshColliders = true;
     [SerializeField] private bool _useDetectedRoomWalls = true;
     [SerializeField] private bool _showConfiguredWallsWhileDetecting = false;
-    [SerializeField] private bool _requestSceneCaptureIfNoRoom = true;
-    [SerializeField] private bool _useConfiguredWallsWhenDetectionFails = true;
+    [SerializeField] private bool _requestSceneCaptureIfNoRoom = false;
+    [SerializeField] private bool _useConfiguredWallsWhenDetectionFails = false;
+    [SerializeField] private int _detectedRoomWallFetchAttempts = 8;
+    [SerializeField] private float _detectedRoomWallFetchRetryDelaySeconds = 0.75f;
     [SerializeField] private Color _wallOverlayColor = new Color(1f, 0.82f, 0f, 0.72f);
     [SerializeField] private string _surfaceLayerName = "Surface";
     [SerializeField] private float _floorWorldY = 0f;
@@ -259,40 +261,57 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
 
     private async Task LoadDetectedRoomWallsAsync(Transform root)
     {
-        List<OVRAnchor> rooms = new List<OVRAnchor>();
-        OVRResult<List<OVRAnchor>, OVRAnchor.FetchResult> roomFetchResult =
-            await OVRAnchor.FetchAnchorsAsync(rooms, new OVRAnchor.FetchOptions
-            {
-                SingleComponentType = typeof(OVRRoomLayout),
-            });
+        int maxAttempts = Mathf.Max(1, _detectedRoomWallFetchAttempts);
+        int wallCount = 0;
 
-        if ((!roomFetchResult.Success || rooms.Count == 0) && _requestSceneCaptureIfNoRoom)
+        for (int attempt = 1; attempt <= maxAttempts; attempt++)
         {
-            bool sceneCaptured = await OVRScene.RequestSpaceSetup();
-            if (sceneCaptured)
+            if (!HasReliableTrackingSpace())
             {
-                roomFetchResult = await OVRAnchor.FetchAnchorsAsync(rooms, new OVRAnchor.FetchOptions
+                Debug.Log($"Waiting for reliable headset tracking before loading detected room walls. Attempt {attempt}/{maxAttempts}.", this);
+                await DelayDetectedRoomWallRetry();
+                continue;
+            }
+
+            List<OVRAnchor> rooms = new List<OVRAnchor>();
+            OVRResult<List<OVRAnchor>, OVRAnchor.FetchResult> roomFetchResult =
+                await OVRAnchor.FetchAnchorsAsync(rooms, new OVRAnchor.FetchOptions
                 {
                     SingleComponentType = typeof(OVRRoomLayout),
                 });
-            }
-        }
 
-        int wallCount = 0;
-        if (roomFetchResult.Success)
-        {
-            for (int roomIndex = 0; roomIndex < rooms.Count; roomIndex++)
+            if ((!roomFetchResult.Success || rooms.Count == 0) && _requestSceneCaptureIfNoRoom)
             {
-                wallCount += await CreateDetectedRoomWallAnchors(root, rooms[roomIndex], wallCount);
+                bool sceneCaptured = await OVRScene.RequestSpaceSetup();
+                if (sceneCaptured)
+                {
+                    roomFetchResult = await OVRAnchor.FetchAnchorsAsync(rooms, new OVRAnchor.FetchOptions
+                    {
+                        SingleComponentType = typeof(OVRRoomLayout),
+                    });
+                }
             }
+
+            if (roomFetchResult.Success)
+            {
+                for (int roomIndex = 0; roomIndex < rooms.Count; roomIndex++)
+                {
+                    wallCount += await CreateDetectedRoomWallAnchors(root, rooms[roomIndex], wallCount);
+                }
+            }
+
+            if (wallCount > 0)
+            {
+                RemoveConfiguredWallAnchors();
+                Debug.Log($"Task 2 created {wallCount} detected yellow wall anchors from the room scene model on attempt {attempt}/{maxAttempts}.", this);
+                return;
+            }
+
+            Debug.Log($"Detected room wall fetch returned no usable walls on attempt {attempt}/{maxAttempts}.", this);
+            await DelayDetectedRoomWallRetry();
         }
 
-        if (wallCount > 0)
-        {
-            RemoveConfiguredWallAnchors();
-            Debug.Log($"Task 2 created {wallCount} detected yellow wall anchors from the room scene model.", this);
-        }
-        else if (_configuredWallAnchors.Count > 0)
+        if (_configuredWallAnchors.Count > 0)
         {
             Debug.Log($"Room wall detection did not return any walls, so Task 2 is keeping {_configuredWallAnchors.Count} configured yellow wall anchors.", this);
         }
@@ -301,6 +320,27 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
             wallCount = CreateConfiguredWallAnchors(root);
             Debug.Log($"No detected room walls were available, so Task 2 created {wallCount} configured yellow wall anchors.", this);
         }
+        else
+        {
+            Debug.LogWarning("No detected room walls were available, and configured fallback walls are disabled to avoid showing walls that do not match the headset room layout.", this);
+        }
+    }
+
+    private async Task DelayDetectedRoomWallRetry()
+    {
+        int delayMilliseconds = Mathf.RoundToInt(Mathf.Max(0.05f, _detectedRoomWallFetchRetryDelaySeconds) * 1000f);
+        await Task.Delay(delayMilliseconds);
+    }
+
+    private static bool HasReliableTrackingSpace()
+    {
+        Camera mainCamera = Camera.main;
+        if (mainCamera == null || mainCamera.transform.position.sqrMagnitude <= 0.001f)
+        {
+            return false;
+        }
+
+        return OVRManager.tracker == null || OVRManager.tracker.isPositionTracked;
     }
 
     private int CreateConfiguredWallAnchors(Transform root)
