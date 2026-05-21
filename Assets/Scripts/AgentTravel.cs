@@ -203,14 +203,19 @@ public class AgentTravel : MonoBehaviour
             return resolvedDestination;
         }
 
-        float threshold = GetWallStopThreshold();
-        if (threshold <= 0f)
+        float minimumCenterDistance = Mathf.Max(0.01f, avatarCollisionRadius) + GetWallStopThreshold();
+        if (minimumCenterDistance <= 0f)
         {
             return resolvedDestination;
         }
 
         Vector3 probeOrigin = pinPosition + Vector3.up * Mathf.Max(0f, wallProbeHeight);
-        if (!TryGetClosestWallPoint(probeOrigin, threshold, out Vector3 closestWallPoint, out float wallDistance, out _))
+        if (!TryGetClosestWallPoint(
+                probeOrigin,
+                minimumCenterDistance,
+                out Vector3 closestWallPoint,
+                out float wallDistance,
+                out _))
         {
             return resolvedDestination;
         }
@@ -229,7 +234,7 @@ public class AgentTravel : MonoBehaviour
         }
 
         awayFromWall.Normalize();
-        float correctionDistance = threshold - wallDistance;
+        float correctionDistance = minimumCenterDistance - wallDistance;
         if (correctionDistance <= 0f)
         {
             return resolvedDestination;
@@ -276,9 +281,8 @@ public class AgentTravel : MonoBehaviour
 
         if (MoveAvatarToWallThreshold(navMoveDirection))
         {
-            ResetBlockedMovementTracking();
-            navMoveDirection = targetPosition - avatar.position;
-            navMoveDirection.y = 0f;
+            FinishDestinationAtWallThreshold();
+            return;
         }
 
         if (IsMovingTowardWallWithinStopThreshold(navMoveDirection))
@@ -328,17 +332,8 @@ public class AgentTravel : MonoBehaviour
         bool wallLimitedMove = false;
         if (MoveAvatarToWallThreshold(travelDirection))
         {
-            ResetBlockedMovementTracking();
-            flatTarget = new Vector3(targetPosition.x, avatar.position.y, targetPosition.z);
-            direction = flatTarget - avatar.position;
-            if (direction.magnitude <= stopDistance)
-            {
-                FinishDestination();
-                return;
-            }
-
-            travelDirection = direction.normalized;
-            moveDistance = Mathf.Min(moveSpeed * Time.deltaTime, direction.magnitude);
+            FinishDestinationAtWallThreshold();
+            return;
         }
 
         if (IsMovingTowardWallWithinStopThreshold(travelDirection))

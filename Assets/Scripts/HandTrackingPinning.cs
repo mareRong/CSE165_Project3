@@ -407,20 +407,26 @@ public class HandTrackingPinning : MonoBehaviour
         if (!hasValidRayHit)
             return;
 
+        Vector3 pinDestination = currentRayEndPoint;
+        if (agentTravel != null)
+        {
+            pinDestination = agentTravel.ResolvePinnedDestination(currentRayEndPoint);
+        }
+
         if (currentPin != null)
             Destroy(currentPin);
 
         if (pinPrefab != null)
         {
-            currentPin = Instantiate(pinPrefab, currentRayEndPoint, Quaternion.identity);
+            currentPin = Instantiate(pinPrefab, pinDestination, Quaternion.identity);
         }
         else
         {
-            currentPin = CreateFallbackPin(currentRayEndPoint);
+            currentPin = CreateFallbackPin(pinDestination);
         }
 
         if (agentTravel != null)
-            agentTravel.SetDestination(agentTravel.ResolvePinnedDestination(currentRayEndPoint));
+            agentTravel.SetDestination(pinDestination);
 
         isPinningMode = false;
         HidePinningVisuals();
