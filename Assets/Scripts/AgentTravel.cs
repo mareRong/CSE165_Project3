@@ -31,6 +31,8 @@ public class AgentTravel : MonoBehaviour
     public float wallProbeHeight = 0.9f;
     public float blockedMoveTimeout = 0.2f;
     public float blockedMoveDistance = 0.01f;
+    public bool treatTallCollidersAsWalls = true;
+    public float minimumWallHeight = 0.5f;
 
     [Header("Ground / Feet")]
     public LayerMask groundLayers = ~0;
@@ -46,10 +48,17 @@ public class AgentTravel : MonoBehaviour
     [Range(0f, 1f)] public float footPositionWeight = 1f;
     [Range(0f, 1f)] public float footRotationWeight = 0.6f;
 
+    [Header("Animation")]
+    public string walkingParameter = "Walking";
+    public string idleStateName = "idle";
+    public float minimumWalkingMotion = 0.002f;
+
     public event Action DestinationReached;
 
     private Vector3 targetPosition;
     private bool hasTarget;
+    private bool isWalking;
+    private Vector3 lastAnimationPosition;
     private Vector3 lastMovementCheckPosition;
     private float blockedMoveTimer;
 
@@ -82,6 +91,7 @@ public class AgentTravel : MonoBehaviour
         navMeshAgent.updateRotation = true;
 
         ResetBlockedMovementTracking();
+        ResetAnimationMovementTracking();
         ResumeNavMeshAgent();
         SetWalking(false);
 
@@ -128,6 +138,7 @@ public class AgentTravel : MonoBehaviour
         targetPosition = destination;
         hasTarget = true;
         ResetBlockedMovementTracking();
+        ResetAnimationMovementTracking();
         ResumeNavMeshAgent();
 
         if (useNavMesh && navMeshAgent != null)
@@ -190,7 +201,7 @@ public class AgentTravel : MonoBehaviour
             return;
         }
 
-        SetWalking(navMeshAgent.velocity.magnitude > 0.05f);
+        SetWalkingFromActualMotion();
     }
 
     private void HandleSimpleMovement()
@@ -240,13 +251,15 @@ public class AgentTravel : MonoBehaviour
         Vector3 previousPosition = avatar.position;
         Vector3 nextPosition = avatar.position + travelDirection * moveDistance;
         avatar.position = ProjectOntoGround(nextPosition);
-        if (wallLimitedMove || DidNotMoveEnough(previousPosition, avatar.position) || IsMovingTowardWallWithinStopThreshold(travelDirection))
+        bool actuallyMoved = DidMoveEnoughForWalking(previousPosition, avatar.position);
+        if (wallLimitedMove || !actuallyMoved || IsMovingTowardWallWithinStopThreshold(travelDirection))
         {
             StopBlockedMovement();
             return;
         }
 
-        SetWalking(true);
+        SetWalking(actuallyMoved);
+        lastAnimationPosition = avatar.position;
 
         if (direction.sqrMagnitude > 0.0001f)
         {
@@ -429,6 +442,13 @@ public class AgentTravel : MonoBehaviour
         return movementDelta.magnitude <= Mathf.Max(0.001f, blockedMoveDistance);
     }
 
+    private bool DidMoveEnoughForWalking(Vector3 previousPosition, Vector3 currentPosition)
+    {
+        Vector3 movementDelta = currentPosition - previousPosition;
+        movementDelta.y = 0f;
+        return movementDelta.magnitude > Mathf.Max(0.0001f, minimumWalkingMotion);
+    }
+
     private float GetWallStopThreshold()
     {
         return Mathf.Max(0f, wallClearance) + Mathf.Max(0f, wallStopTolerance);
@@ -478,12 +498,12 @@ public class AgentTravel : MonoBehaviour
         return foundWall;
     }
 
-    private static bool IsWallHit(RaycastHit hit)
+    private bool IsWallHit(RaycastHit hit)
     {
         return IsWallCollider(hit.collider);
     }
 
-    private static bool IsWallCollider(Collider collider)
+    private bool IsWallCollider(Collider collider)
     {
         if (collider == null)
         {
@@ -491,8 +511,21 @@ public class AgentTravel : MonoBehaviour
         }
 
         SpatialSurfaceMarker marker = collider.GetComponentInParent<SpatialSurfaceMarker>();
-        return marker != null &&
-               marker.SurfaceKind == SpatialSurfaceAnchorManager.SurfaceKind.Wall;
+        if (marker != null)
+        {
+            return marker.SurfaceKind == SpatialSurfaceAnchorManager.SurfaceKind.Wall;
+        }
+
+        AgentTravel agentTravel = collider.GetComponentInParent<AgentTravel>();
+        if (agentTravel != null)
+        {
+            return false;
+        }
+
+        Bounds bounds = collider.bounds;
+        return treatTallCollidersAsWalls &&
+               bounds.size.y >= Mathf.Max(0.01f, minimumWallHeight) &&
+               bounds.size.y > Mathf.Min(bounds.size.x, bounds.size.z);
     }
 
     private void StopBlockedMovement()
@@ -501,6 +534,7 @@ public class AgentTravel : MonoBehaviour
         SetWalking(false);
         StopNavMeshAgent();
         ResetBlockedMovementTracking();
+        ResetAnimationMovementTracking();
     }
 
     private bool TryFinishReachedDestination()
@@ -529,6 +563,7 @@ public class AgentTravel : MonoBehaviour
         hasTarget = false;
         StopNavMeshAgent();
         ResetBlockedMovementTracking();
+        ResetAnimationMovementTracking();
         SetWalking(false);
         DestinationReached?.Invoke();
     }
@@ -555,6 +590,25 @@ public class AgentTravel : MonoBehaviour
     {
         lastMovementCheckPosition = avatar != null ? avatar.position : transform.position;
         blockedMoveTimer = 0f;
+    }
+
+    private void ResetAnimationMovementTracking()
+    {
+        lastAnimationPosition = avatar != null ? avatar.position : transform.position;
+    }
+
+    private void SetWalkingFromActualMotion()
+    {
+        if (!hasTarget || avatar == null)
+        {
+            SetWalking(false);
+            ResetAnimationMovementTracking();
+            return;
+        }
+
+        bool actuallyMoved = DidMoveEnoughForWalking(lastAnimationPosition, avatar.position);
+        SetWalking(actuallyMoved);
+        lastAnimationPosition = avatar.position;
     }
 
     private void SnapAvatarToNavMesh()
@@ -606,9 +660,17 @@ public class AgentTravel : MonoBehaviour
 
     private void SetWalking(bool walking)
     {
+        bool walkingChanged = isWalking != walking;
+        isWalking = walking;
+
         if (avatarAnimator != null)
         {
-            avatarAnimator.SetBool("Walking", walking);
+            avatarAnimator.SetBool(walkingParameter, walking);
+
+            if (walkingChanged && !walking && !string.IsNullOrEmpty(idleStateName))
+            {
+                avatarAnimator.CrossFade(idleStateName, 0.05f);
+            }
         }
     }
 
