@@ -90,6 +90,11 @@ public class HandTrackingPinning : MonoBehaviour
             TryInitializeAgentTravel();
         }
 
+        if (currentPin != null && agentTravel != null && !agentTravel.HasActiveDestination)
+        {
+            ClearCurrentPin();
+        }
+
         if (handSubsystem == null)
         {
             TryInitializeHands();
@@ -479,11 +484,18 @@ public class HandTrackingPinning : MonoBehaviour
 
     private void HandleDestinationReached()
     {
-        if (currentPin != null)
+        ClearCurrentPin();
+    }
+
+    private void ClearCurrentPin()
+    {
+        if (currentPin == null)
         {
-            Destroy(currentPin);
-            currentPin = null;
+            return;
         }
+
+        Destroy(currentPin);
+        currentPin = null;
     }
 
     private bool TryGetPalmPose(XRHand hand, out Pose pose)

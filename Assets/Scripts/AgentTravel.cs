@@ -54,6 +54,7 @@ public class AgentTravel : MonoBehaviour
     public float minimumWalkingMotion = 0.002f;
 
     public event Action DestinationReached;
+    public bool HasActiveDestination => hasTarget;
 
     private Vector3 targetPosition;
     private bool hasTarget;
