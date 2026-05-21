@@ -166,7 +166,15 @@ public class AgentTravel : MonoBehaviour
             return;
         }
 
-        if (IsInsideWallStopThreshold())
+        Vector3 navMoveDirection = navMeshAgent.desiredVelocity;
+        navMoveDirection.y = 0f;
+        if (navMoveDirection.sqrMagnitude < 0.0001f)
+        {
+            navMoveDirection = targetPosition - avatar.position;
+            navMoveDirection.y = 0f;
+        }
+
+        if (IsMovingTowardWallWithinStopThreshold(navMoveDirection))
         {
             StopBlockedMovement();
             return;
@@ -204,7 +212,7 @@ public class AgentTravel : MonoBehaviour
 
         Vector3 travelDirection = direction.normalized;
         float moveDistance = Mathf.Min(moveSpeed * Time.deltaTime, direction.magnitude);
-        if (IsInsideWallStopThreshold())
+        if (IsMovingTowardWallWithinStopThreshold(travelDirection))
         {
             StopBlockedMovement();
             return;
@@ -229,7 +237,7 @@ public class AgentTravel : MonoBehaviour
 
         Vector3 nextPosition = avatar.position + travelDirection * moveDistance;
         avatar.position = ProjectOntoGround(nextPosition);
-        if (IsInsideWallStopThreshold())
+        if (IsMovingTowardWallWithinStopThreshold(travelDirection))
         {
             StopBlockedMovement();
             return;
@@ -355,13 +363,15 @@ public class AgentTravel : MonoBehaviour
                TryGetNearestWallHit(travelDirection, GetWallStopThreshold(), out _);
     }
 
-    private bool IsInsideWallStopThreshold()
+    private bool IsMovingTowardWallWithinStopThreshold(Vector3 travelDirection)
     {
-        if (!avoidWalls || avatar == null)
+        travelDirection.y = 0f;
+        if (!avoidWalls || avatar == null || travelDirection.sqrMagnitude < 0.0001f)
         {
             return false;
         }
 
+        travelDirection.Normalize();
         float threshold = GetWallStopThreshold();
         float overlapRadius = Mathf.Max(0.01f, avatarCollisionRadius + threshold);
         Vector3 origin = avatar.position + Vector3.up * Mathf.Max(0f, wallProbeHeight);
@@ -381,7 +391,26 @@ public class AgentTravel : MonoBehaviour
 
             Vector3 closestPoint = wallCollider.ClosestPoint(origin);
             float distanceToAvatarShell = Vector3.Distance(origin, closestPoint) - Mathf.Max(0.01f, avatarCollisionRadius);
-            if (distanceToAvatarShell <= threshold)
+            if (distanceToAvatarShell > threshold)
+            {
+                continue;
+            }
+
+            Vector3 awayFromWall = origin - closestPoint;
+            awayFromWall.y = 0f;
+            if (awayFromWall.sqrMagnitude < 0.0001f)
+            {
+                awayFromWall = -wallCollider.transform.forward;
+                awayFromWall.y = 0f;
+            }
+
+            if (awayFromWall.sqrMagnitude < 0.0001f)
+            {
+                return true;
+            }
+
+            awayFromWall.Normalize();
+            if (Vector3.Dot(travelDirection, awayFromWall) <= 0f)
             {
                 return true;
             }
