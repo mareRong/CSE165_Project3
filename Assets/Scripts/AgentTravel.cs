@@ -25,7 +25,7 @@ public class AgentTravel : MonoBehaviour
     [Header("Wall Avoidance")]
     public bool avoidWalls = true;
     public LayerMask wallLayers = ~0;
-    public float wallClearance = 0.18f;
+    public float wallClearance = 0.24f;
     public float wallStopTolerance = 0.02f;
     public float avatarCollisionRadius = 0.18f;
     public float wallProbeHeight = 0.9f;
@@ -164,6 +164,35 @@ public class AgentTravel : MonoBehaviour
                 }
             }
         }
+    }
+
+    public void CompleteDestinationIfActive()
+    {
+        if (!hasTarget)
+        {
+            return;
+        }
+
+        waitingForNewDestinationAfterWallStop = false;
+        FinishDestination();
+    }
+
+    public bool IsWithinWallThresholdForPoint(Vector3 point)
+    {
+        if (!avoidWalls || avatar == null)
+        {
+            return false;
+        }
+
+        Vector3 travelDirection = point - avatar.position;
+        travelDirection.y = 0f;
+        if (travelDirection.sqrMagnitude < 0.0001f)
+        {
+            return false;
+        }
+
+        return IsAtWallStopThreshold(travelDirection) ||
+               IsMovingTowardWallWithinStopThreshold(travelDirection);
     }
 
     public Vector3 ResolvePinnedDestination(Vector3 pinPosition)

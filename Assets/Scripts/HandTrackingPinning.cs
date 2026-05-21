@@ -46,6 +46,7 @@ public class HandTrackingPinning : MonoBehaviour
     public float pinStemRadius = 0.012f;
     public float pinHeadRadius = 0.04f;
     public Color pinColor = new Color(1f, 0.25f, 0.2f, 1f);
+    public float pinArrivalDistance = 0.45f;
 
     [Header("UI Message")]
     public TextMeshProUGUI statusText;
@@ -92,6 +93,15 @@ public class HandTrackingPinning : MonoBehaviour
 
         if (currentPin != null && agentTravel != null && !agentTravel.HasActiveDestination)
         {
+            ClearCurrentPin();
+        }
+
+        if (currentPin != null &&
+            agentTravel != null &&
+            HasAvatarReachedPinRange() &&
+            agentTravel.IsWithinWallThresholdForPoint(currentPin.transform.position))
+        {
+            agentTravel.CompleteDestinationIfActive();
             ClearCurrentPin();
         }
 
@@ -496,6 +506,21 @@ public class HandTrackingPinning : MonoBehaviour
 
         Destroy(currentPin);
         currentPin = null;
+    }
+
+    private bool HasAvatarReachedPinRange()
+    {
+        if (currentPin == null || agentTravel == null || agentTravel.avatar == null)
+        {
+            return false;
+        }
+
+        Vector3 avatarPosition = agentTravel.avatar.position;
+        Vector3 pinPosition = currentPin.transform.position;
+        avatarPosition.y = 0f;
+        pinPosition.y = 0f;
+
+        return Vector3.Distance(avatarPosition, pinPosition) <= Mathf.Max(0.01f, pinArrivalDistance);
     }
 
     private bool TryGetPalmPose(XRHand hand, out Pose pose)
