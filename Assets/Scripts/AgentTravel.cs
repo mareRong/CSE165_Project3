@@ -212,6 +212,7 @@ public class AgentTravel : MonoBehaviour
 
         Vector3 travelDirection = direction.normalized;
         float moveDistance = Mathf.Min(moveSpeed * Time.deltaTime, direction.magnitude);
+        bool wallLimitedMove = false;
         if (IsMovingTowardWallWithinStopThreshold(travelDirection))
         {
             StopBlockedMovement();
@@ -233,11 +234,13 @@ public class AgentTravel : MonoBehaviour
             }
 
             moveDistance = limitedDistance;
+            wallLimitedMove = true;
         }
 
+        Vector3 previousPosition = avatar.position;
         Vector3 nextPosition = avatar.position + travelDirection * moveDistance;
         avatar.position = ProjectOntoGround(nextPosition);
-        if (IsMovingTowardWallWithinStopThreshold(travelDirection))
+        if (wallLimitedMove || DidNotMoveEnough(previousPosition, avatar.position) || IsMovingTowardWallWithinStopThreshold(travelDirection))
         {
             StopBlockedMovement();
             return;
@@ -417,6 +420,13 @@ public class AgentTravel : MonoBehaviour
         }
 
         return false;
+    }
+
+    private bool DidNotMoveEnough(Vector3 previousPosition, Vector3 currentPosition)
+    {
+        Vector3 movementDelta = currentPosition - previousPosition;
+        movementDelta.y = 0f;
+        return movementDelta.magnitude <= Mathf.Max(0.001f, blockedMoveDistance);
     }
 
     private float GetWallStopThreshold()
