@@ -29,6 +29,8 @@ public class AgentTravel : MonoBehaviour
     public float wallStopTolerance = 0.02f;
     public float avatarCollisionRadius = 0.18f;
     public float wallProbeHeight = 0.9f;
+    public float blockedMoveTimeout = 0.2f;
+    public float blockedMoveDistance = 0.01f;
 
     [Header("Ground / Feet")]
     public LayerMask groundLayers = ~0;
@@ -48,6 +50,8 @@ public class AgentTravel : MonoBehaviour
 
     private Vector3 targetPosition;
     private bool hasTarget;
+    private Vector3 lastMovementCheckPosition;
+    private float blockedMoveTimer;
 
     private IEnumerator Start()
     {
@@ -77,6 +81,8 @@ public class AgentTravel : MonoBehaviour
         navMeshAgent.updatePosition = true;
         navMeshAgent.updateRotation = true;
 
+        ResetBlockedMovementTracking();
+        ResumeNavMeshAgent();
         SetWalking(false);
 
         yield return new WaitForSeconds(bakeDelay);
@@ -121,6 +127,8 @@ public class AgentTravel : MonoBehaviour
     {
         targetPosition = destination;
         hasTarget = true;
+        ResetBlockedMovementTracking();
+        ResumeNavMeshAgent();
 
         if (useNavMesh && navMeshAgent != null)
         {
@@ -147,16 +155,19 @@ public class AgentTravel : MonoBehaviour
     {
         if (!hasTarget)
         {
+            StopNavMeshAgent();
             SetWalking(false);
             return;
         }
 
-        if (!navMeshAgent.pathPending &&
-            navMeshAgent.remainingDistance <= navMeshAgent.stoppingDistance)
+        if (IsBlockedNearWallOrDestination())
         {
-            hasTarget = false;
-            SetWalking(false);
-            DestinationReached?.Invoke();
+            StopBlockedMovement();
+            return;
+        }
+
+        if (TryFinishReachedDestination())
+        {
             return;
         }
 
@@ -181,9 +192,7 @@ public class AgentTravel : MonoBehaviour
 
         if (direction.magnitude <= stopDistance)
         {
-            hasTarget = false;
-            SetWalking(false);
-            DestinationReached?.Invoke();
+            FinishDestination();
             return;
         }
 
@@ -257,6 +266,51 @@ public class AgentTravel : MonoBehaviour
         return true;
     }
 
+    private bool IsBlockedNearWallOrDestination()
+    {
+        if (avatar == null || navMeshAgent == null || navMeshAgent.pathPending)
+        {
+            ResetBlockedMovementTracking();
+            return false;
+        }
+
+        if (navMeshAgent.pathStatus == NavMeshPathStatus.PathInvalid)
+        {
+            return true;
+        }
+
+        Vector3 currentPosition = avatar.position;
+        Vector3 movementDelta = currentPosition - lastMovementCheckPosition;
+        movementDelta.y = 0f;
+
+        bool tryingToMove = navMeshAgent.hasPath ||
+                            navMeshAgent.desiredVelocity.sqrMagnitude > 0.0025f ||
+                            navMeshAgent.velocity.sqrMagnitude > 0.0025f;
+
+        if (!tryingToMove || movementDelta.magnitude > Mathf.Max(0.001f, blockedMoveDistance))
+        {
+            ResetBlockedMovementTracking();
+            return false;
+        }
+
+        Vector3 targetDirection = targetPosition - currentPosition;
+        targetDirection.y = 0f;
+        bool nearWall = targetDirection.sqrMagnitude > 0.0001f &&
+                        TryGetNearestWallHit(targetDirection.normalized, GetForwardWallProbeDistance(), out _);
+
+        bool nearDestination = !float.IsInfinity(navMeshAgent.remainingDistance) &&
+                               navMeshAgent.remainingDistance <= Mathf.Max(stopDistance, navMeshAgent.stoppingDistance) + GetWallStopThreshold();
+
+        blockedMoveTimer += Time.deltaTime;
+        float timeout = Mathf.Max(0f, blockedMoveTimeout);
+        if (!nearWall && !nearDestination && navMeshAgent.pathStatus != NavMeshPathStatus.PathPartial)
+        {
+            timeout *= 2f;
+        }
+
+        return blockedMoveTimer >= timeout;
+    }
+
     private bool TryGetWallLimitedMoveDistance(
         Vector3 travelDirection,
         float requestedDistance,
@@ -287,6 +341,11 @@ public class AgentTravel : MonoBehaviour
     private float GetWallStopThreshold()
     {
         return Mathf.Max(0f, wallClearance) + Mathf.Max(0f, wallStopTolerance);
+    }
+
+    private float GetForwardWallProbeDistance()
+    {
+        return GetWallStopThreshold() + Mathf.Max(0f, moveSpeed * Time.deltaTime);
     }
 
     private bool TryGetNearestWallHit(
@@ -344,11 +403,62 @@ public class AgentTravel : MonoBehaviour
     {
         hasTarget = false;
         SetWalking(false);
+        StopNavMeshAgent();
+        ResetBlockedMovementTracking();
+    }
 
+    private bool TryFinishReachedDestination()
+    {
+        if (navMeshAgent.pathPending || float.IsInfinity(navMeshAgent.remainingDistance))
+        {
+            return false;
+        }
+
+        if (navMeshAgent.remainingDistance > navMeshAgent.stoppingDistance)
+        {
+            return false;
+        }
+
+        if (navMeshAgent.hasPath && navMeshAgent.velocity.sqrMagnitude > 0.0025f)
+        {
+            return false;
+        }
+
+        FinishDestination();
+        return true;
+    }
+
+    private void FinishDestination()
+    {
+        hasTarget = false;
+        StopNavMeshAgent();
+        ResetBlockedMovementTracking();
+        SetWalking(false);
+        DestinationReached?.Invoke();
+    }
+
+    private void StopNavMeshAgent()
+    {
         if (navMeshAgent != null && navMeshAgent.isOnNavMesh)
         {
+            navMeshAgent.isStopped = true;
             navMeshAgent.ResetPath();
+            navMeshAgent.velocity = Vector3.zero;
         }
+    }
+
+    private void ResumeNavMeshAgent()
+    {
+        if (navMeshAgent != null && navMeshAgent.isOnNavMesh)
+        {
+            navMeshAgent.isStopped = false;
+        }
+    }
+
+    private void ResetBlockedMovementTracking()
+    {
+        lastMovementCheckPosition = avatar != null ? avatar.position : transform.position;
+        blockedMoveTimer = 0f;
     }
 
     private void SnapAvatarToNavMesh()
