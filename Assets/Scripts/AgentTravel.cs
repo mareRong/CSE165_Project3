@@ -26,6 +26,7 @@ public class AgentTravel : MonoBehaviour
     public bool avoidWalls = true;
     public LayerMask wallLayers = ~0;
     public float wallClearance = 0.12f;
+    public float wallStopTolerance = 0.02f;
     public float avatarCollisionRadius = 0.18f;
     public float wallProbeHeight = 0.9f;
 
@@ -190,6 +191,12 @@ public class AgentTravel : MonoBehaviour
 
         Vector3 travelDirection = direction.normalized;
         float moveDistance = Mathf.Min(moveSpeed * Time.deltaTime, direction.magnitude);
+        if (IsAtWallStopThreshold(travelDirection))
+        {
+            StopBlockedMovement();
+            return;
+        }
+
         if (TryGetWallLimitedMoveDistance(travelDirection, moveDistance, out float limitedDistance))
         {
             if (limitedDistance <= 0.001f)
@@ -230,17 +237,18 @@ public class AgentTravel : MonoBehaviour
         }
 
         Vector3 travelDirection = velocity.normalized;
-        if (!TryGetNearestWallHit(travelDirection, Mathf.Max(0f, wallClearance), out RaycastHit hit))
+        float stopThreshold = GetWallStopThreshold();
+        if (!TryGetNearestWallHit(travelDirection, stopThreshold, out RaycastHit hit))
+        {
+            return false;
+        }
+
+        if (hit.distance > stopThreshold)
         {
             return false;
         }
 
         float correctionDistance = Mathf.Max(0f, wallClearance - hit.distance);
-        if (correctionDistance <= 0.001f)
-        {
-            return false;
-        }
-
         Vector3 correctedPosition = ProjectOntoGround(avatar.position - travelDirection * correctionDistance);
         avatar.position = correctedPosition;
         navMeshAgent.Warp(correctedPosition);
@@ -268,6 +276,17 @@ public class AgentTravel : MonoBehaviour
 
         limitedDistance = Mathf.Max(0f, hit.distance - Mathf.Max(0f, wallClearance));
         return limitedDistance < requestedDistance;
+    }
+
+    private bool IsAtWallStopThreshold(Vector3 travelDirection)
+    {
+        return avoidWalls &&
+               TryGetNearestWallHit(travelDirection, GetWallStopThreshold(), out _);
+    }
+
+    private float GetWallStopThreshold()
+    {
+        return Mathf.Max(0f, wallClearance) + Mathf.Max(0f, wallStopTolerance);
     }
 
     private bool TryGetNearestWallHit(
