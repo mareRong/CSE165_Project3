@@ -46,7 +46,7 @@ public class HandTrackingPinning : MonoBehaviour
     public float pinStemRadius = 0.012f;
     public float pinHeadRadius = 0.04f;
     public Color pinColor = new Color(1f, 0.25f, 0.2f, 1f);
-    public float pinArrivalDistance = 0.45f;
+    public float pinArrivalDistance = 0.32f;
 
     [Header("UI Message")]
     public TextMeshProUGUI statusText;

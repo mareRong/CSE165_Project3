@@ -27,7 +27,7 @@ public class AgentTravel : MonoBehaviour
     public LayerMask wallLayers = ~0;
     public float wallClearance = 0.24f;
     public float wallStopTolerance = 0.02f;
-    public float avatarCollisionRadius = 0.18f;
+    public float avatarCollisionRadius = 0.24f;
     public float wallProbeHeight = 0.9f;
     public float blockedMoveTimeout = 0.2f;
     public float blockedMoveDistance = 0.01f;
