@@ -487,10 +487,11 @@ public class AgentTravel : MonoBehaviour
 
         Vector3 origin = avatar.position + Vector3.up * Mathf.Max(0f, wallProbeHeight);
         float radius = Mathf.Max(0.01f, avatarCollisionRadius);
+        Vector3 normalizedTravelDirection = travelDirection.normalized;
         RaycastHit[] hits = Physics.SphereCastAll(
             origin,
             radius,
-            travelDirection.normalized,
+            normalizedTravelDirection,
             probeDistance,
             wallLayers,
             QueryTriggerInteraction.Ignore);
@@ -500,7 +501,9 @@ public class AgentTravel : MonoBehaviour
         for (int i = 0; i < hits.Length; i++)
         {
             RaycastHit hit = hits[i];
-            if (!IsWallHit(hit) || hit.distance >= nearestDistance)
+            if (!IsWallHit(hit) ||
+                !IsWallBlockingTravel(hit.collider, origin, normalizedTravelDirection) ||
+                hit.distance >= nearestDistance)
             {
                 continue;
             }
@@ -516,6 +519,30 @@ public class AgentTravel : MonoBehaviour
     private bool IsWallHit(RaycastHit hit)
     {
         return IsWallCollider(hit.collider);
+    }
+
+    private bool IsWallBlockingTravel(Collider wallCollider, Vector3 origin, Vector3 travelDirection)
+    {
+        if (wallCollider == null)
+        {
+            return false;
+        }
+
+        Vector3 awayFromWall = origin - wallCollider.ClosestPoint(origin);
+        awayFromWall.y = 0f;
+        if (awayFromWall.sqrMagnitude < 0.0001f)
+        {
+            awayFromWall = -wallCollider.transform.forward;
+            awayFromWall.y = 0f;
+        }
+
+        if (awayFromWall.sqrMagnitude < 0.0001f)
+        {
+            return true;
+        }
+
+        awayFromWall.Normalize();
+        return Vector3.Dot(travelDirection, awayFromWall) <= 0f;
     }
 
     private bool IsWallCollider(Collider collider)
