@@ -22,6 +22,13 @@ public class AgentTravel : MonoBehaviour
     public float rotationSpeed = 5f;
     public float stopDistance = 0.3f;
 
+    [Header("Wall Avoidance")]
+    public bool avoidWalls = true;
+    public LayerMask wallLayers = ~0;
+    public float wallClearance = 0.12f;
+    public float avatarCollisionRadius = 0.18f;
+    public float wallProbeHeight = 0.9f;
+
     [Header("Ground / Feet")]
     public LayerMask groundLayers = ~0;
     public float groundProbeHeight = 2f;
@@ -152,6 +159,11 @@ public class AgentTravel : MonoBehaviour
             return;
         }
 
+        if (ApplyNavMeshWallClearance())
+        {
+            return;
+        }
+
         SetWalking(navMeshAgent.velocity.magnitude > 0.05f);
     }
 
@@ -176,17 +188,147 @@ public class AgentTravel : MonoBehaviour
 
         SetWalking(true);
 
-        Vector3 nextPosition = avatar.position + direction.normalized * moveSpeed * Time.deltaTime;
+        Vector3 travelDirection = direction.normalized;
+        float moveDistance = Mathf.Min(moveSpeed * Time.deltaTime, direction.magnitude);
+        if (TryGetWallLimitedMoveDistance(travelDirection, moveDistance, out float limitedDistance))
+        {
+            if (limitedDistance <= 0.001f)
+            {
+                StopBlockedMovement();
+                return;
+            }
+
+            moveDistance = limitedDistance;
+        }
+
+        Vector3 nextPosition = avatar.position + travelDirection * moveDistance;
         avatar.position = ProjectOntoGround(nextPosition);
 
         if (direction.sqrMagnitude > 0.0001f)
         {
-            Quaternion targetRotation = Quaternion.LookRotation(direction.normalized, Vector3.up);
+            Quaternion targetRotation = Quaternion.LookRotation(travelDirection, Vector3.up);
             avatar.rotation = Quaternion.Slerp(
                 avatar.rotation,
                 targetRotation,
                 Time.deltaTime * rotationSpeed
             );
+        }
+    }
+
+    private bool ApplyNavMeshWallClearance()
+    {
+        if (!avoidWalls || avatar == null || navMeshAgent == null)
+        {
+            return false;
+        }
+
+        Vector3 velocity = navMeshAgent.velocity;
+        velocity.y = 0f;
+        if (velocity.sqrMagnitude < 0.0001f)
+        {
+            return false;
+        }
+
+        Vector3 travelDirection = velocity.normalized;
+        if (!TryGetNearestWallHit(travelDirection, Mathf.Max(0f, wallClearance), out RaycastHit hit))
+        {
+            return false;
+        }
+
+        float correctionDistance = Mathf.Max(0f, wallClearance - hit.distance);
+        if (correctionDistance <= 0.001f)
+        {
+            return false;
+        }
+
+        Vector3 correctedPosition = ProjectOntoGround(avatar.position - travelDirection * correctionDistance);
+        avatar.position = correctedPosition;
+        navMeshAgent.Warp(correctedPosition);
+        navMeshAgent.ResetPath();
+        StopBlockedMovement();
+        return true;
+    }
+
+    private bool TryGetWallLimitedMoveDistance(
+        Vector3 travelDirection,
+        float requestedDistance,
+        out float limitedDistance)
+    {
+        limitedDistance = requestedDistance;
+        if (!avoidWalls || avatar == null || requestedDistance <= 0f)
+        {
+            return false;
+        }
+
+        float probeDistance = requestedDistance + Mathf.Max(0f, wallClearance);
+        if (!TryGetNearestWallHit(travelDirection, probeDistance, out RaycastHit hit))
+        {
+            return false;
+        }
+
+        limitedDistance = Mathf.Max(0f, hit.distance - Mathf.Max(0f, wallClearance));
+        return limitedDistance < requestedDistance;
+    }
+
+    private bool TryGetNearestWallHit(
+        Vector3 travelDirection,
+        float probeDistance,
+        out RaycastHit nearestHit)
+    {
+        nearestHit = default;
+        if (avatar == null || travelDirection.sqrMagnitude < 0.0001f || probeDistance <= 0f)
+        {
+            return false;
+        }
+
+        Vector3 origin = avatar.position + Vector3.up * Mathf.Max(0f, wallProbeHeight);
+        float radius = Mathf.Max(0.01f, avatarCollisionRadius);
+        RaycastHit[] hits = Physics.SphereCastAll(
+            origin,
+            radius,
+            travelDirection.normalized,
+            probeDistance,
+            wallLayers,
+            QueryTriggerInteraction.Ignore);
+
+        float nearestDistance = float.PositiveInfinity;
+        bool foundWall = false;
+        for (int i = 0; i < hits.Length; i++)
+        {
+            RaycastHit hit = hits[i];
+            if (!IsWallHit(hit) || hit.distance >= nearestDistance)
+            {
+                continue;
+            }
+
+            nearestHit = hit;
+            nearestDistance = hit.distance;
+            foundWall = true;
+        }
+
+        return foundWall;
+    }
+
+    private static bool IsWallHit(RaycastHit hit)
+    {
+        if (hit.collider == null)
+        {
+            return false;
+        }
+
+        SpatialSurfaceMarker marker = hit.collider.GetComponentInParent<SpatialSurfaceMarker>();
+        return marker != null &&
+               marker.SurfaceKind == SpatialSurfaceAnchorManager.SurfaceKind.Wall;
+    }
+
+    private void StopBlockedMovement()
+    {
+        hasTarget = false;
+        SetWalking(false);
+
+        if (navMeshAgent != null && navMeshAgent.isOnNavMesh)
+        {
+            navMeshAgent.ResetPath();
         }
     }
 
