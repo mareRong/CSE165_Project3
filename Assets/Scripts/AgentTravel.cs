@@ -61,6 +61,7 @@ public class AgentTravel : MonoBehaviour
     private Vector3 lastAnimationPosition;
     private Vector3 lastMovementCheckPosition;
     private float blockedMoveTimer;
+    private bool waitingForNewDestinationAfterWallStop;
 
     private IEnumerator Start()
     {
@@ -137,6 +138,7 @@ public class AgentTravel : MonoBehaviour
     {
         targetPosition = destination;
         hasTarget = true;
+        waitingForNewDestinationAfterWallStop = false;
         ResetBlockedMovementTracking();
         ResetAnimationMovementTracking();
         ResumeNavMeshAgent();
@@ -164,6 +166,13 @@ public class AgentTravel : MonoBehaviour
 
     private void HandleNavMeshMovement()
     {
+        if (waitingForNewDestinationAfterWallStop)
+        {
+            StopNavMeshAgent();
+            SetWalking(false);
+            return;
+        }
+
         if (!hasTarget)
         {
             StopNavMeshAgent();
@@ -206,6 +215,12 @@ public class AgentTravel : MonoBehaviour
 
     private void HandleSimpleMovement()
     {
+        if (waitingForNewDestinationAfterWallStop)
+        {
+            SetWalking(false);
+            return;
+        }
+
         if (!hasTarget || avatar == null)
         {
             SetWalking(false);
@@ -531,6 +546,7 @@ public class AgentTravel : MonoBehaviour
     private void StopBlockedMovement()
     {
         hasTarget = false;
+        waitingForNewDestinationAfterWallStop = true;
         SetWalking(false);
         StopNavMeshAgent();
         ResetBlockedMovementTracking();
