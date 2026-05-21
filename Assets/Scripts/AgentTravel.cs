@@ -180,7 +180,7 @@ public class AgentTravel : MonoBehaviour
         }
 
         Vector3 probeOrigin = pinPosition + Vector3.up * Mathf.Max(0f, wallProbeHeight);
-        if (!TryGetClosestWallPoint(probeOrigin, threshold, out Vector3 closestWallPoint, out float wallDistance))
+        if (!TryGetClosestWallPoint(probeOrigin, threshold, out Vector3 closestWallPoint, out float wallDistance, out _))
         {
             return resolvedDestination;
         }
@@ -244,6 +244,12 @@ public class AgentTravel : MonoBehaviour
             navMoveDirection.y = 0f;
         }
 
+        if (MoveAvatarToWallThreshold(navMoveDirection))
+        {
+            SetDestination(targetPosition);
+            return;
+        }
+
         if (IsMovingTowardWallWithinStopThreshold(navMoveDirection))
         {
             StopBlockedMovement();
@@ -289,6 +295,11 @@ public class AgentTravel : MonoBehaviour
         Vector3 travelDirection = direction.normalized;
         float moveDistance = Mathf.Min(moveSpeed * Time.deltaTime, direction.magnitude);
         bool wallLimitedMove = false;
+        if (MoveAvatarToWallThreshold(travelDirection))
+        {
+            ResetBlockedMovementTracking();
+        }
+
         if (IsMovingTowardWallWithinStopThreshold(travelDirection))
         {
             StopBlockedMovement();
@@ -481,8 +492,7 @@ public class AgentTravel : MonoBehaviour
             awayFromWall.y = 0f;
             if (awayFromWall.sqrMagnitude < 0.0001f)
             {
-                awayFromWall = -wallCollider.transform.forward;
-                awayFromWall.y = 0f;
+                awayFromWall = travelDirection;
             }
 
             if (awayFromWall.sqrMagnitude < 0.0001f)
@@ -570,10 +580,12 @@ public class AgentTravel : MonoBehaviour
         Vector3 origin,
         float searchRadius,
         out Vector3 closestWallPoint,
-        out float closestWallDistance)
+        out float closestWallDistance,
+        out Collider closestWallCollider)
     {
         closestWallPoint = Vector3.zero;
         closestWallDistance = float.PositiveInfinity;
+        closestWallCollider = null;
         if (searchRadius <= 0f)
         {
             return false;
@@ -604,6 +616,7 @@ public class AgentTravel : MonoBehaviour
 
             closestWallPoint = wallPoint;
             closestWallDistance = wallDistance;
+            closestWallCollider = wallCollider;
         }
 
         return closestWallDistance < searchRadius;
@@ -618,7 +631,12 @@ public class AgentTravel : MonoBehaviour
 
         float minimumCenterDistance = Mathf.Max(0.01f, avatarCollisionRadius) + GetWallStopThreshold();
         Vector3 probeOrigin = avatar.position + Vector3.up * Mathf.Max(0f, wallProbeHeight);
-        if (!TryGetClosestWallPoint(probeOrigin, minimumCenterDistance, out Vector3 closestWallPoint, out float wallDistance))
+        if (!TryGetClosestWallPoint(
+                probeOrigin,
+                minimumCenterDistance,
+                out Vector3 closestWallPoint,
+                out float wallDistance,
+                out Collider closestWallCollider))
         {
             return false;
         }
@@ -627,8 +645,7 @@ public class AgentTravel : MonoBehaviour
         awayFromWall.y = 0f;
         if (awayFromWall.sqrMagnitude < 0.0001f)
         {
-            awayFromWall = preferredAwayDirection;
-            awayFromWall.y = 0f;
+            awayFromWall = ChooseWallEscapeDirection(closestWallCollider, probeOrigin, preferredAwayDirection);
         }
 
         if (awayFromWall.sqrMagnitude < 0.0001f)
@@ -651,6 +668,63 @@ public class AgentTravel : MonoBehaviour
         }
 
         return true;
+    }
+
+    private Vector3 ChooseWallEscapeDirection(Collider wallCollider, Vector3 probeOrigin, Vector3 preferredDirection)
+    {
+        Vector3 bestDirection = Vector3.zero;
+        float bestDistance = -1f;
+
+        TestWallEscapeDirection(wallCollider, probeOrigin, preferredDirection, ref bestDirection, ref bestDistance);
+        TestWallEscapeDirection(wallCollider, probeOrigin, -preferredDirection, ref bestDirection, ref bestDistance);
+
+        if (wallCollider != null)
+        {
+            TestWallEscapeDirection(wallCollider, probeOrigin, wallCollider.transform.forward, ref bestDirection, ref bestDistance);
+            TestWallEscapeDirection(wallCollider, probeOrigin, -wallCollider.transform.forward, ref bestDirection, ref bestDistance);
+            TestWallEscapeDirection(wallCollider, probeOrigin, wallCollider.transform.right, ref bestDirection, ref bestDistance);
+            TestWallEscapeDirection(wallCollider, probeOrigin, -wallCollider.transform.right, ref bestDirection, ref bestDistance);
+        }
+
+        return bestDirection;
+    }
+
+    private void TestWallEscapeDirection(
+        Collider wallCollider,
+        Vector3 probeOrigin,
+        Vector3 candidateDirection,
+        ref Vector3 bestDirection,
+        ref float bestDistance)
+    {
+        candidateDirection.y = 0f;
+        if (candidateDirection.sqrMagnitude < 0.0001f)
+        {
+            return;
+        }
+
+        candidateDirection.Normalize();
+        Vector3 candidateOrigin = probeOrigin + candidateDirection * Mathf.Max(0.05f, GetWallStopThreshold());
+        float candidateDistance = GetFlatDistanceFromWall(wallCollider, candidateOrigin);
+        if (candidateDistance <= bestDistance)
+        {
+            return;
+        }
+
+        bestDistance = candidateDistance;
+        bestDirection = candidateDirection;
+    }
+
+    private static float GetFlatDistanceFromWall(Collider wallCollider, Vector3 origin)
+    {
+        if (wallCollider == null)
+        {
+            return -1f;
+        }
+
+        Vector3 closestPoint = wallCollider.ClosestPoint(origin);
+        Vector3 flatOffset = origin - closestPoint;
+        flatOffset.y = 0f;
+        return flatOffset.magnitude;
     }
 
     private bool IsWallHit(RaycastHit hit)
