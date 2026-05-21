@@ -166,6 +166,12 @@ public class AgentTravel : MonoBehaviour
             return;
         }
 
+        if (IsInsideWallStopThreshold())
+        {
+            StopBlockedMovement();
+            return;
+        }
+
         if (TryFinishReachedDestination())
         {
             return;
@@ -196,10 +202,14 @@ public class AgentTravel : MonoBehaviour
             return;
         }
 
-        SetWalking(true);
-
         Vector3 travelDirection = direction.normalized;
         float moveDistance = Mathf.Min(moveSpeed * Time.deltaTime, direction.magnitude);
+        if (IsInsideWallStopThreshold())
+        {
+            StopBlockedMovement();
+            return;
+        }
+
         if (IsAtWallStopThreshold(travelDirection))
         {
             StopBlockedMovement();
@@ -219,6 +229,13 @@ public class AgentTravel : MonoBehaviour
 
         Vector3 nextPosition = avatar.position + travelDirection * moveDistance;
         avatar.position = ProjectOntoGround(nextPosition);
+        if (IsInsideWallStopThreshold())
+        {
+            StopBlockedMovement();
+            return;
+        }
+
+        SetWalking(true);
 
         if (direction.sqrMagnitude > 0.0001f)
         {
@@ -338,6 +355,41 @@ public class AgentTravel : MonoBehaviour
                TryGetNearestWallHit(travelDirection, GetWallStopThreshold(), out _);
     }
 
+    private bool IsInsideWallStopThreshold()
+    {
+        if (!avoidWalls || avatar == null)
+        {
+            return false;
+        }
+
+        float threshold = GetWallStopThreshold();
+        float overlapRadius = Mathf.Max(0.01f, avatarCollisionRadius + threshold);
+        Vector3 origin = avatar.position + Vector3.up * Mathf.Max(0f, wallProbeHeight);
+        Collider[] colliders = Physics.OverlapSphere(
+            origin,
+            overlapRadius,
+            wallLayers,
+            QueryTriggerInteraction.Ignore);
+
+        for (int i = 0; i < colliders.Length; i++)
+        {
+            Collider wallCollider = colliders[i];
+            if (!IsWallCollider(wallCollider))
+            {
+                continue;
+            }
+
+            Vector3 closestPoint = wallCollider.ClosestPoint(origin);
+            float distanceToAvatarShell = Vector3.Distance(origin, closestPoint) - Mathf.Max(0.01f, avatarCollisionRadius);
+            if (distanceToAvatarShell <= threshold)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private float GetWallStopThreshold()
     {
         return Mathf.Max(0f, wallClearance) + Mathf.Max(0f, wallStopTolerance);
@@ -389,12 +441,17 @@ public class AgentTravel : MonoBehaviour
 
     private static bool IsWallHit(RaycastHit hit)
     {
-        if (hit.collider == null)
+        return IsWallCollider(hit.collider);
+    }
+
+    private static bool IsWallCollider(Collider collider)
+    {
+        if (collider == null)
         {
             return false;
         }
 
-        SpatialSurfaceMarker marker = hit.collider.GetComponentInParent<SpatialSurfaceMarker>();
+        SpatialSurfaceMarker marker = collider.GetComponentInParent<SpatialSurfaceMarker>();
         return marker != null &&
                marker.SurfaceKind == SpatialSurfaceAnchorManager.SurfaceKind.Wall;
     }
