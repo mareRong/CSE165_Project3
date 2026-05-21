@@ -2143,9 +2143,9 @@ MonoBehaviour:
   _surfaceLayerName: Surface
   _floorWorldY: 0
   _configuredWallBaseWorldY: 0
-  _centerFloorUnderInitialHeadset: 0
+  _centerFloorUnderInitialHeadset: 1
   _lockFloorToAvatarFeet: 1
-  _spatiallyAnchorConfiguredFloor: 1
+  _spatiallyAnchorConfiguredFloor: 0
   _waitForTrackedHeadsetBeforeLockingFloor: 0
   _floorLockDelay: 0
   _floorOffsetBelowAvatar: 0.03

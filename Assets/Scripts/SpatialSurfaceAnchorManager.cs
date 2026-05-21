@@ -37,9 +37,9 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
     [SerializeField] private string _surfaceLayerName = "Surface";
     [SerializeField] private float _floorWorldY = 0f;
     [SerializeField] private float _configuredWallBaseWorldY = 0f;
-    [SerializeField] private bool _centerFloorUnderInitialHeadset = false;
+    [SerializeField] private bool _centerFloorUnderInitialHeadset = true;
     [SerializeField] private bool _lockFloorToAvatarFeet = true;
-    [SerializeField] private bool _spatiallyAnchorConfiguredFloor = true;
+    [SerializeField] private bool _spatiallyAnchorConfiguredFloor = false;
     [SerializeField] private bool _waitForTrackedHeadsetBeforeLockingFloor = false;
     [SerializeField] private float _floorLockDelay = 0f;
     [SerializeField] private float _floorOffsetBelowAvatar = 0.03f;
@@ -97,6 +97,7 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
     private readonly List<ConfiguredWallAnchor> _configuredWallAnchors = new List<ConfiguredWallAnchor>();
     private Material _surfaceMaterial;
     private Transform _floorAnchor;
+    private Transform _configuredFloorAnchor;
     private Vector3 _lockedFloorPosition;
     private Quaternion _lockedFloorRotation;
     private bool _hasLockedFloorPose;
@@ -183,6 +184,7 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
         _createdSurfaces.Clear();
         _configuredWallAnchors.Clear();
         _floorAnchor = null;
+        _configuredFloorAnchor = null;
         _hasLockedFloorPose = false;
         _pendingFloorLockSurface = null;
 
@@ -218,6 +220,7 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
         if (surface.Kind == SurfaceKind.Floor)
         {
             _floorAnchor = anchorObject.transform;
+            _configuredFloorAnchor = anchorObject.transform;
             _pendingFloorLockSurface = surface;
             AddSpatialAnchorIfEnabled(anchorObject);
             TryLockFloorPose(anchorObject.transform, surface);
@@ -296,14 +299,15 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
             {
                 for (int roomIndex = 0; roomIndex < rooms.Count; roomIndex++)
                 {
-                    wallCount += await CreateDetectedRoomWallAnchors(root, rooms[roomIndex], wallCount);
+                    wallCount += await CreateDetectedRoomSurfaceAnchors(root, rooms[roomIndex], wallCount);
                 }
             }
 
             if (wallCount > 0)
             {
+                RemoveConfiguredFloorAnchor();
                 RemoveConfiguredWallAnchors();
-                Debug.Log($"Task 2 created {wallCount} detected yellow wall anchors from the room scene model on attempt {attempt}/{maxAttempts}.", this);
+                Debug.Log($"Task 2 created {wallCount} detected room surface anchors from the scene model on attempt {attempt}/{maxAttempts}.", this);
                 return;
             }
 
@@ -373,19 +377,32 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
         _configuredWallAnchors.Clear();
     }
 
-    private async Task<int> CreateDetectedRoomWallAnchors(Transform root, OVRAnchor room, int existingWallCount)
+    private void RemoveConfiguredFloorAnchor()
+    {
+        if (_configuredFloorAnchor == null)
+        {
+            return;
+        }
+
+        _createdSurfaces.Remove(_configuredFloorAnchor.gameObject);
+        DestroySurfaceObject(_configuredFloorAnchor.gameObject);
+        _configuredFloorAnchor = null;
+        _pendingFloorLockSurface = null;
+        _hasLockedFloorPose = false;
+    }
+
+    private async Task<int> CreateDetectedRoomSurfaceAnchors(Transform root, OVRAnchor room, int existingWallCount)
     {
         if (!room.TryGetComponent(out OVRRoomLayout roomLayout))
         {
             return 0;
         }
 
-        if (!roomLayout.TryGetRoomLayout(out _, out _, out Guid[] wallUuids) || wallUuids == null || wallUuids.Length == 0)
+        if (!roomLayout.TryGetRoomLayout(out Guid floorUuid, out _, out Guid[] wallUuids))
         {
             return 0;
         }
 
-        HashSet<Guid> wallUuidSet = new HashSet<Guid>(wallUuids);
         List<OVRAnchor> roomAnchors = new List<OVRAnchor>();
         OVRResult<List<OVRAnchor>, OVRAnchor.FetchResult> roomAnchorResult = await roomLayout.FetchAnchorsAsync(roomAnchors);
         if (!roomAnchorResult.Success)
@@ -394,6 +411,26 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
         }
 
         int createdCount = 0;
+        if (floorUuid != Guid.Empty)
+        {
+            for (int i = 0; i < roomAnchors.Count; i++)
+            {
+                if (roomAnchors[i].Uuid == floorUuid &&
+                    await TryCreateDetectedSurfaceAnchor(root, roomAnchors[i], "Detected Floor", SurfaceKind.Floor, true))
+                {
+                    createdCount++;
+                    break;
+                }
+            }
+        }
+
+        if (wallUuids == null || wallUuids.Length == 0)
+        {
+            return createdCount;
+        }
+
+        HashSet<Guid> wallUuidSet = new HashSet<Guid>(wallUuids);
+        int createdWallCount = 0;
         for (int i = 0; i < roomAnchors.Count; i++)
         {
             OVRAnchor roomAnchor = roomAnchors[i];
@@ -402,18 +439,24 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
                 continue;
             }
 
-            if (await TryCreateDetectedWallAnchor(root, roomAnchor, existingWallCount + createdCount + 1))
+            if (await TryCreateDetectedSurfaceAnchor(root, roomAnchor, $"Detected Wall {existingWallCount + createdWallCount + 1}", SurfaceKind.Wall, true))
             {
                 createdCount++;
+                createdWallCount++;
             }
         }
 
         return createdCount;
     }
 
-    private async Task<bool> TryCreateDetectedWallAnchor(Transform root, OVRAnchor wallAnchor, int wallNumber)
+    private async Task<bool> TryCreateDetectedSurfaceAnchor(
+        Transform root,
+        OVRAnchor surfaceAnchor,
+        string surfaceName,
+        SurfaceKind surfaceKind,
+        bool useAnchorPlaneMesh)
     {
-        if (!wallAnchor.TryGetComponent(out OVRLocatable locatable))
+        if (!surfaceAnchor.TryGetComponent(out OVRLocatable locatable))
         {
             return false;
         }
@@ -432,29 +475,41 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
             return false;
         }
 
-        if (!wallAnchor.TryGetComponent(out OVRBounded2D bounds2D) || !bounds2D.IsEnabled)
+        if (!surfaceAnchor.TryGetComponent(out OVRBounded2D bounds2D) || !bounds2D.IsEnabled)
         {
             return false;
         }
 
-        Rect wallBounds = bounds2D.BoundingBox;
-        Vector2 wallSize = new Vector2(
-            Mathf.Max(0.01f, wallBounds.size.x),
-            Mathf.Max(0.01f, wallBounds.size.y));
-        string wallName = $"Detected Wall {wallNumber}";
+        Rect surfaceBounds = bounds2D.BoundingBox;
+        Vector2 surfaceSize = new Vector2(
+            Mathf.Max(0.01f, surfaceBounds.size.x),
+            Mathf.Max(0.01f, surfaceBounds.size.y));
 
-        GameObject anchorObject = new GameObject("SpatialAnchor_" + SanitizeName(wallName));
+        GameObject anchorObject = new GameObject("SpatialAnchor_" + SanitizeName(surfaceName));
         anchorObject.transform.SetParent(root, false);
         anchorObject.transform.SetPositionAndRotation(worldPosition.Value, worldRotation.Value);
         ApplySurfaceLayer(anchorObject);
-        anchorObject.AddComponent<OVRSpatialAnchor>();
         _createdSurfaces.Add(anchorObject);
 
-        Vector3 localCenter = new Vector3(wallBounds.center.x, wallBounds.center.y, 0f);
-        CreateSurfaceVisual(anchorObject.transform, wallName, SurfaceKind.Wall, wallSize, _wallOverlayColor, localCenter);
+        Vector3 localCenter = new Vector3(surfaceBounds.center.x, surfaceBounds.center.y, 0f);
+        CreateSurfaceVisual(
+            anchorObject.transform,
+            surfaceName,
+            surfaceKind,
+            surfaceSize,
+            ResolveSurfaceColor(surfaceKind),
+            localCenter,
+            useAnchorPlaneMesh);
 
         SpatialSurfaceMarker marker = anchorObject.AddComponent<SpatialSurfaceMarker>();
-        marker.Initialize(wallName, SurfaceKind.Wall, wallSize);
+        marker.Initialize(surfaceName, surfaceKind, surfaceSize);
+
+        if (surfaceKind == SurfaceKind.Floor)
+        {
+            _floorAnchor = anchorObject.transform;
+            _pendingFloorLockSurface = null;
+        }
+
         return true;
     }
 
@@ -475,7 +530,8 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
         SurfaceKind surfaceKind,
         Vector2 surfaceSize,
         Color surfaceColor,
-        Vector3 localPosition)
+        Vector3 localPosition,
+        bool useAnchorPlaneMesh = false)
     {
         GameObject meshObject = new GameObject("PhysicalSpaceMesh_" + SanitizeName(surfaceName));
         meshObject.transform.SetParent(anchor, false);
@@ -491,7 +547,7 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
         };
 
         MeshFilter meshFilter = meshObject.AddComponent<MeshFilter>();
-        meshFilter.sharedMesh = CreateSurfaceMesh(visualDefinition);
+        meshFilter.sharedMesh = CreateSurfaceMesh(visualDefinition, useAnchorPlaneMesh);
 
         MeshRenderer meshRenderer = meshObject.AddComponent<MeshRenderer>();
         meshRenderer.sharedMaterial = CreateSurfaceMaterialInstance(ResolveSurfaceColor(visualDefinition));
@@ -505,7 +561,17 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
 
     private Color ResolveSurfaceColor(SurfaceDefinition surface)
     {
-        return surface.Kind == SurfaceKind.Wall ? _wallOverlayColor : surface.Color;
+        return ResolveSurfaceColor(surface.Kind, surface.Color);
+    }
+
+    private Color ResolveSurfaceColor(SurfaceKind surfaceKind)
+    {
+        return ResolveSurfaceColor(surfaceKind, new Color(0.08f, 0.42f, 1f, 0.32f));
+    }
+
+    private Color ResolveSurfaceColor(SurfaceKind surfaceKind, Color fallbackColor)
+    {
+        return surfaceKind == SurfaceKind.Wall ? _wallOverlayColor : fallbackColor;
     }
 
     private void ApplySurfaceLayer(GameObject target)
@@ -736,13 +802,13 @@ public sealed class SpatialSurfaceAnchorManager : MonoBehaviour
         return Quaternion.LookRotation(flattenedForward, Vector3.up);
     }
 
-    private static Mesh CreateSurfaceMesh(SurfaceDefinition surface)
+    private static Mesh CreateSurfaceMesh(SurfaceDefinition surface, bool useAnchorPlaneMesh = false)
     {
         float halfWidth = Mathf.Max(0.01f, surface.Size.x) * 0.5f;
         float halfHeight = Mathf.Max(0.01f, surface.Size.y) * 0.5f;
         Vector3[] vertices;
 
-        if (surface.Kind == SurfaceKind.Floor)
+        if (surface.Kind == SurfaceKind.Floor && !useAnchorPlaneMesh)
         {
             vertices = new[]
             {
