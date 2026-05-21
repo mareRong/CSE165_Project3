@@ -328,7 +328,7 @@ public class AgentTravel : MonoBehaviour
         Vector3 nextPosition = avatar.position + travelDirection * moveDistance;
         avatar.position = ProjectOntoGround(nextPosition);
         bool actuallyMoved = DidMoveEnoughForWalking(previousPosition, avatar.position);
-        if (!actuallyMoved || IsMovingTowardWallWithinStopThreshold(travelDirection))
+        if (wallLimitedMove || !actuallyMoved || IsMovingTowardWallWithinStopThreshold(travelDirection))
         {
             StopBlockedMovement();
             return;
