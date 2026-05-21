@@ -61,6 +61,7 @@ public class HandTrackingPinning : MonoBehaviour
     private bool hasValidRayHit = false;
 
     private GameObject currentPin;
+    private AgentTravel subscribedAgentTravel;
     private Coroutine statusCoroutine;
 
     void Start()
@@ -71,6 +72,15 @@ public class HandTrackingPinning : MonoBehaviour
 
         if (statusText != null)
             statusText.gameObject.SetActive(false);
+    }
+
+    void OnDestroy()
+    {
+        if (subscribedAgentTravel != null)
+        {
+            subscribedAgentTravel.DestinationReached -= HandleDestinationReached;
+            subscribedAgentTravel = null;
+        }
     }
 
     void Update()
@@ -446,10 +456,34 @@ public class HandTrackingPinning : MonoBehaviour
 
     private void TryInitializeAgentTravel()
     {
-        if (agentTravel != null)
+        AgentTravel resolvedAgentTravel = agentTravel != null ? agentTravel : FindAnyObjectByType<AgentTravel>();
+        if (resolvedAgentTravel == subscribedAgentTravel)
+        {
+            agentTravel = resolvedAgentTravel;
             return;
+        }
 
-        agentTravel = FindAnyObjectByType<AgentTravel>();
+        if (subscribedAgentTravel != null)
+        {
+            subscribedAgentTravel.DestinationReached -= HandleDestinationReached;
+        }
+
+        agentTravel = resolvedAgentTravel;
+        subscribedAgentTravel = resolvedAgentTravel;
+
+        if (subscribedAgentTravel != null)
+        {
+            subscribedAgentTravel.DestinationReached += HandleDestinationReached;
+        }
+    }
+
+    private void HandleDestinationReached()
+    {
+        if (currentPin != null)
+        {
+            Destroy(currentPin);
+            currentPin = null;
+        }
     }
 
     private bool TryGetPalmPose(XRHand hand, out Pose pose)

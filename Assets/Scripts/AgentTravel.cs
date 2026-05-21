@@ -789,6 +789,7 @@ public class AgentTravel : MonoBehaviour
         StopNavMeshAgent();
         ResetBlockedMovementTracking();
         ResetAnimationMovementTracking();
+        DestinationReached?.Invoke();
     }
 
     private bool TryFinishReachedDestination()
