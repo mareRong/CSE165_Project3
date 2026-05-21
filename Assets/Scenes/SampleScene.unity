@@ -283,6 +283,13 @@ MonoBehaviour:
   groundProbeHeight: 2
   groundProbeDistance: 6
   groundOffset: 0.01
+  stopBeforeWalls: 1
+  wallLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  wallStopDistance: 0.12
+  wallProbeHeight: 0.8
+  wallProbeRadius: 0.08
   showFootGroundHighlight: 1
   footHighlightRadius: 0.35
   footHighlightColor: {r: 0.2, g: 0.95, b: 1, a: 0.68}
