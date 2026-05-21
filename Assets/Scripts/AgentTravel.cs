@@ -7,8 +7,6 @@ using UnityEngine.AI;
 [RequireComponent(typeof(Animator))]
 public class AgentTravel : MonoBehaviour
 {
-    private const float WallInwardDotThreshold = -0.01f;
-
     [Header("Agent")]
     public Transform avatar;
     public Animator avatarAnimator;
@@ -283,9 +281,8 @@ public class AgentTravel : MonoBehaviour
 
         if (MoveAvatarToWallThreshold(navMoveDirection))
         {
-            ResetBlockedMovementTracking();
-            navMoveDirection = targetPosition - avatar.position;
-            navMoveDirection.y = 0f;
+            FinishDestinationAtWallThreshold();
+            return;
         }
 
         if (IsMovingTowardWallWithinStopThreshold(navMoveDirection))
@@ -335,17 +332,8 @@ public class AgentTravel : MonoBehaviour
         bool wallLimitedMove = false;
         if (MoveAvatarToWallThreshold(travelDirection))
         {
-            ResetBlockedMovementTracking();
-            flatTarget = new Vector3(targetPosition.x, avatar.position.y, targetPosition.z);
-            direction = flatTarget - avatar.position;
-            if (direction.magnitude <= stopDistance)
-            {
-                FinishDestination();
-                return;
-            }
-
-            travelDirection = direction.normalized;
-            moveDistance = Mathf.Min(moveSpeed * Time.deltaTime, direction.magnitude);
+            FinishDestinationAtWallThreshold();
+            return;
         }
 
         if (IsMovingTowardWallWithinStopThreshold(travelDirection))
@@ -555,7 +543,7 @@ public class AgentTravel : MonoBehaviour
             }
 
             awayFromWall.Normalize();
-            if (Vector3.Dot(travelDirection, awayFromWall) < WallInwardDotThreshold)
+            if (Vector3.Dot(travelDirection, awayFromWall) <= 0f)
             {
                 return true;
             }
@@ -807,7 +795,7 @@ public class AgentTravel : MonoBehaviour
         }
 
         awayFromWall.Normalize();
-        return Vector3.Dot(travelDirection, awayFromWall) < WallInwardDotThreshold;
+        return Vector3.Dot(travelDirection, awayFromWall) <= 0f;
     }
 
     private bool IsWallCollider(Collider collider)
