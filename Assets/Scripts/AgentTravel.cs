@@ -247,13 +247,13 @@ public class AgentTravel : MonoBehaviour
 
         if (MoveAvatarToWallThreshold(navMoveDirection))
         {
-            SetDestination(targetPosition);
+            FinishDestinationAtWallThreshold();
             return;
         }
 
         if (IsMovingTowardWallWithinStopThreshold(navMoveDirection))
         {
-            StopBlockedMovement();
+            FinishDestinationAtWallThreshold();
             return;
         }
 
@@ -298,18 +298,19 @@ public class AgentTravel : MonoBehaviour
         bool wallLimitedMove = false;
         if (MoveAvatarToWallThreshold(travelDirection))
         {
-            ResetBlockedMovementTracking();
+            FinishDestinationAtWallThreshold();
+            return;
         }
 
         if (IsMovingTowardWallWithinStopThreshold(travelDirection))
         {
-            StopBlockedMovement();
+            FinishDestinationAtWallThreshold();
             return;
         }
 
         if (IsAtWallStopThreshold(travelDirection))
         {
-            StopBlockedMovement();
+            FinishDestinationAtWallThreshold();
             return;
         }
 
@@ -317,7 +318,7 @@ public class AgentTravel : MonoBehaviour
         {
             if (limitedDistance <= 0.001f)
             {
-                StopBlockedMovement();
+                FinishDestinationAtWallThreshold();
                 return;
             }
 
@@ -329,7 +330,13 @@ public class AgentTravel : MonoBehaviour
         Vector3 nextPosition = avatar.position + travelDirection * moveDistance;
         avatar.position = ProjectOntoGround(nextPosition);
         bool actuallyMoved = DidMoveEnoughForWalking(previousPosition, avatar.position);
-        if (wallLimitedMove || !actuallyMoved || IsMovingTowardWallWithinStopThreshold(travelDirection))
+        if (wallLimitedMove || IsMovingTowardWallWithinStopThreshold(travelDirection))
+        {
+            FinishDestinationAtWallThreshold();
+            return;
+        }
+
+        if (!actuallyMoved)
         {
             StopBlockedMovement();
             return;
@@ -790,7 +797,12 @@ public class AgentTravel : MonoBehaviour
         StopNavMeshAgent();
         ResetBlockedMovementTracking();
         ResetAnimationMovementTracking();
-        DestinationReached?.Invoke();
+    }
+
+    private void FinishDestinationAtWallThreshold()
+    {
+        waitingForNewDestinationAfterWallStop = false;
+        FinishDestination();
     }
 
     private bool TryFinishReachedDestination()
