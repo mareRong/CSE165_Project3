@@ -25,7 +25,7 @@ public class AgentTravel : MonoBehaviour
     [Header("Wall Avoidance")]
     public bool avoidWalls = true;
     public LayerMask wallLayers = ~0;
-    public float wallClearance = 0.12f;
+    public float wallClearance = 0.18f;
     public float wallStopTolerance = 0.02f;
     public float avatarCollisionRadius = 0.18f;
     public float wallProbeHeight = 0.9f;
@@ -328,7 +328,7 @@ public class AgentTravel : MonoBehaviour
         Vector3 nextPosition = avatar.position + travelDirection * moveDistance;
         avatar.position = ProjectOntoGround(nextPosition);
         bool actuallyMoved = DidMoveEnoughForWalking(previousPosition, avatar.position);
-        if (wallLimitedMove || !actuallyMoved || IsMovingTowardWallWithinStopThreshold(travelDirection))
+        if (!actuallyMoved || IsMovingTowardWallWithinStopThreshold(travelDirection))
         {
             StopBlockedMovement();
             return;
