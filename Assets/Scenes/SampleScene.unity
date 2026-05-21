@@ -278,9 +278,9 @@ MonoBehaviour:
   wallLayers:
     serializedVersion: 2
     m_Bits: 4294967295
-  wallClearance: 0.18
+  wallClearance: 0.24
   wallStopTolerance: 0.02
-  avatarCollisionRadius: 0.18
+  avatarCollisionRadius: 0.24
   wallProbeHeight: 0.9
   blockedMoveTimeout: 0.2
   blockedMoveDistance: 0.01

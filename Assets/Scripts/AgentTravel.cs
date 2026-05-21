@@ -25,9 +25,9 @@ public class AgentTravel : MonoBehaviour
     [Header("Wall Avoidance")]
     public bool avoidWalls = true;
     public LayerMask wallLayers = ~0;
-    public float wallClearance = 0.18f;
+    public float wallClearance = 0.24f;
     public float wallStopTolerance = 0.02f;
-    public float avatarCollisionRadius = 0.18f;
+    public float avatarCollisionRadius = 0.24f;
     public float wallProbeHeight = 0.9f;
     public float blockedMoveTimeout = 0.2f;
     public float blockedMoveDistance = 0.01f;
@@ -166,6 +166,35 @@ public class AgentTravel : MonoBehaviour
         }
     }
 
+    public void CompleteDestinationIfActive()
+    {
+        if (!hasTarget)
+        {
+            return;
+        }
+
+        waitingForNewDestinationAfterWallStop = false;
+        FinishDestination();
+    }
+
+    public bool IsWithinWallThresholdForPoint(Vector3 point)
+    {
+        if (!avoidWalls || avatar == null)
+        {
+            return false;
+        }
+
+        Vector3 travelDirection = point - avatar.position;
+        travelDirection.y = 0f;
+        if (travelDirection.sqrMagnitude < 0.0001f)
+        {
+            return false;
+        }
+
+        return IsAtWallStopThreshold(travelDirection) ||
+               IsMovingTowardWallWithinStopThreshold(travelDirection);
+    }
+
     public Vector3 ResolvePinnedDestination(Vector3 pinPosition)
     {
         Vector3 resolvedDestination = pinPosition;
@@ -174,14 +203,19 @@ public class AgentTravel : MonoBehaviour
             return resolvedDestination;
         }
 
-        float threshold = GetWallStopThreshold();
-        if (threshold <= 0f)
+        float minimumCenterDistance = Mathf.Max(0.01f, avatarCollisionRadius) + GetWallStopThreshold();
+        if (minimumCenterDistance <= 0f)
         {
             return resolvedDestination;
         }
 
         Vector3 probeOrigin = pinPosition + Vector3.up * Mathf.Max(0f, wallProbeHeight);
-        if (!TryGetClosestWallPoint(probeOrigin, threshold, out Vector3 closestWallPoint, out float wallDistance, out _))
+        if (!TryGetClosestWallPoint(
+                probeOrigin,
+                minimumCenterDistance,
+                out Vector3 closestWallPoint,
+                out float wallDistance,
+                out _))
         {
             return resolvedDestination;
         }
@@ -200,7 +234,7 @@ public class AgentTravel : MonoBehaviour
         }
 
         awayFromWall.Normalize();
-        float correctionDistance = threshold - wallDistance;
+        float correctionDistance = minimumCenterDistance - wallDistance;
         if (correctionDistance <= 0f)
         {
             return resolvedDestination;
@@ -247,13 +281,13 @@ public class AgentTravel : MonoBehaviour
 
         if (MoveAvatarToWallThreshold(navMoveDirection))
         {
-            SetDestination(targetPosition);
+            FinishDestinationAtWallThreshold();
             return;
         }
 
         if (IsMovingTowardWallWithinStopThreshold(navMoveDirection))
         {
-            StopBlockedMovement();
+            FinishDestinationAtWallThreshold();
             return;
         }
 
@@ -298,18 +332,19 @@ public class AgentTravel : MonoBehaviour
         bool wallLimitedMove = false;
         if (MoveAvatarToWallThreshold(travelDirection))
         {
-            ResetBlockedMovementTracking();
+            FinishDestinationAtWallThreshold();
+            return;
         }
 
         if (IsMovingTowardWallWithinStopThreshold(travelDirection))
         {
-            StopBlockedMovement();
+            FinishDestinationAtWallThreshold();
             return;
         }
 
         if (IsAtWallStopThreshold(travelDirection))
         {
-            StopBlockedMovement();
+            FinishDestinationAtWallThreshold();
             return;
         }
 
@@ -317,7 +352,7 @@ public class AgentTravel : MonoBehaviour
         {
             if (limitedDistance <= 0.001f)
             {
-                StopBlockedMovement();
+                FinishDestinationAtWallThreshold();
                 return;
             }
 
@@ -329,7 +364,13 @@ public class AgentTravel : MonoBehaviour
         Vector3 nextPosition = avatar.position + travelDirection * moveDistance;
         avatar.position = ProjectOntoGround(nextPosition);
         bool actuallyMoved = DidMoveEnoughForWalking(previousPosition, avatar.position);
-        if (wallLimitedMove || !actuallyMoved || IsMovingTowardWallWithinStopThreshold(travelDirection))
+        if (wallLimitedMove || IsMovingTowardWallWithinStopThreshold(travelDirection))
+        {
+            FinishDestinationAtWallThreshold();
+            return;
+        }
+
+        if (!actuallyMoved)
         {
             StopBlockedMovement();
             return;
@@ -790,7 +831,12 @@ public class AgentTravel : MonoBehaviour
         StopNavMeshAgent();
         ResetBlockedMovementTracking();
         ResetAnimationMovementTracking();
-        DestinationReached?.Invoke();
+    }
+
+    private void FinishDestinationAtWallThreshold()
+    {
+        waitingForNewDestinationAfterWallStop = false;
+        FinishDestination();
     }
 
     private bool TryFinishReachedDestination()
