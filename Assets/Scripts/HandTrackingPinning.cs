@@ -61,6 +61,7 @@ public class HandTrackingPinning : MonoBehaviour
     private bool hasValidRayHit = false;
 
     private GameObject currentPin;
+    private AgentTravel subscribedAgentTravel;
     private Coroutine statusCoroutine;
 
     void Start()
@@ -73,11 +74,25 @@ public class HandTrackingPinning : MonoBehaviour
             statusText.gameObject.SetActive(false);
     }
 
+    void OnDestroy()
+    {
+        if (subscribedAgentTravel != null)
+        {
+            subscribedAgentTravel.DestinationReached -= HandleDestinationReached;
+            subscribedAgentTravel = null;
+        }
+    }
+
     void Update()
     {
         if (agentTravel == null)
         {
             TryInitializeAgentTravel();
+        }
+
+        if (currentPin != null && agentTravel != null && !agentTravel.HasActiveDestination)
+        {
+            ClearCurrentPin();
         }
 
         if (handSubsystem == null)
@@ -395,7 +410,7 @@ public class HandTrackingPinning : MonoBehaviour
         }
 
         if (agentTravel != null)
-            agentTravel.SetDestination(currentRayEndPoint);
+            agentTravel.SetDestination(agentTravel.ResolvePinnedDestination(currentRayEndPoint));
 
         isPinningMode = false;
         HidePinningVisuals();
@@ -446,10 +461,41 @@ public class HandTrackingPinning : MonoBehaviour
 
     private void TryInitializeAgentTravel()
     {
-        if (agentTravel != null)
+        AgentTravel resolvedAgentTravel = agentTravel != null ? agentTravel : FindAnyObjectByType<AgentTravel>();
+        if (resolvedAgentTravel == subscribedAgentTravel)
+        {
+            agentTravel = resolvedAgentTravel;
             return;
+        }
 
-        agentTravel = FindAnyObjectByType<AgentTravel>();
+        if (subscribedAgentTravel != null)
+        {
+            subscribedAgentTravel.DestinationReached -= HandleDestinationReached;
+        }
+
+        agentTravel = resolvedAgentTravel;
+        subscribedAgentTravel = resolvedAgentTravel;
+
+        if (subscribedAgentTravel != null)
+        {
+            subscribedAgentTravel.DestinationReached += HandleDestinationReached;
+        }
+    }
+
+    private void HandleDestinationReached()
+    {
+        ClearCurrentPin();
+    }
+
+    private void ClearCurrentPin()
+    {
+        if (currentPin == null)
+        {
+            return;
+        }
+
+        Destroy(currentPin);
+        currentPin = null;
     }
 
     private bool TryGetPalmPose(XRHand hand, out Pose pose)
