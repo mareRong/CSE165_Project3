@@ -136,6 +136,7 @@ public class AgentTravel : MonoBehaviour
 
     public void SetDestination(Vector3 destination)
     {
+        MoveAvatarToWallThreshold(destination - GetAvatarPosition());
         targetPosition = destination;
         hasTarget = true;
         waitingForNewDestinationAfterWallStop = false;
@@ -206,6 +207,11 @@ public class AgentTravel : MonoBehaviour
 
         resolvedDestination += awayFromWall * correctionDistance;
         return ProjectOntoGround(resolvedDestination);
+    }
+
+    private Vector3 GetAvatarPosition()
+    {
+        return avatar != null ? avatar.position : transform.position;
     }
 
     private void HandleNavMeshMovement()
@@ -601,6 +607,50 @@ public class AgentTravel : MonoBehaviour
         }
 
         return closestWallDistance < searchRadius;
+    }
+
+    private bool MoveAvatarToWallThreshold(Vector3 preferredAwayDirection)
+    {
+        if (!avoidWalls || avatar == null)
+        {
+            return false;
+        }
+
+        float minimumCenterDistance = Mathf.Max(0.01f, avatarCollisionRadius) + GetWallStopThreshold();
+        Vector3 probeOrigin = avatar.position + Vector3.up * Mathf.Max(0f, wallProbeHeight);
+        if (!TryGetClosestWallPoint(probeOrigin, minimumCenterDistance, out Vector3 closestWallPoint, out float wallDistance))
+        {
+            return false;
+        }
+
+        Vector3 awayFromWall = probeOrigin - closestWallPoint;
+        awayFromWall.y = 0f;
+        if (awayFromWall.sqrMagnitude < 0.0001f)
+        {
+            awayFromWall = preferredAwayDirection;
+            awayFromWall.y = 0f;
+        }
+
+        if (awayFromWall.sqrMagnitude < 0.0001f)
+        {
+            return false;
+        }
+
+        awayFromWall.Normalize();
+        float correctionDistance = minimumCenterDistance - wallDistance;
+        if (correctionDistance <= 0f)
+        {
+            return false;
+        }
+
+        Vector3 correctedPosition = ProjectOntoGround(avatar.position + awayFromWall * correctionDistance);
+        avatar.position = correctedPosition;
+        if (navMeshAgent != null && navMeshAgent.isOnNavMesh)
+        {
+            navMeshAgent.Warp(correctedPosition);
+        }
+
+        return true;
     }
 
     private bool IsWallHit(RaycastHit hit)
