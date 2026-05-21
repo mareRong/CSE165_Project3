@@ -395,7 +395,7 @@ public class HandTrackingPinning : MonoBehaviour
         }
 
         if (agentTravel != null)
-            agentTravel.SetDestination(currentRayEndPoint);
+            agentTravel.SetDestination(agentTravel.ResolvePinnedDestination(currentRayEndPoint));
 
         isPinningMode = false;
         HidePinningVisuals();

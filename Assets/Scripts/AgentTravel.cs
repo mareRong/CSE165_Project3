@@ -164,6 +164,50 @@ public class AgentTravel : MonoBehaviour
         }
     }
 
+    public Vector3 ResolvePinnedDestination(Vector3 pinPosition)
+    {
+        Vector3 resolvedDestination = pinPosition;
+        if (!avoidWalls || avatar == null)
+        {
+            return resolvedDestination;
+        }
+
+        float threshold = GetWallStopThreshold();
+        if (threshold <= 0f)
+        {
+            return resolvedDestination;
+        }
+
+        Vector3 probeOrigin = pinPosition + Vector3.up * Mathf.Max(0f, wallProbeHeight);
+        if (!TryGetClosestWallPoint(probeOrigin, threshold, out Vector3 closestWallPoint, out float wallDistance))
+        {
+            return resolvedDestination;
+        }
+
+        Vector3 awayFromWall = probeOrigin - closestWallPoint;
+        awayFromWall.y = 0f;
+        if (awayFromWall.sqrMagnitude < 0.0001f)
+        {
+            awayFromWall = pinPosition - avatar.position;
+            awayFromWall.y = 0f;
+        }
+
+        if (awayFromWall.sqrMagnitude < 0.0001f)
+        {
+            return resolvedDestination;
+        }
+
+        awayFromWall.Normalize();
+        float correctionDistance = threshold - wallDistance;
+        if (correctionDistance <= 0f)
+        {
+            return resolvedDestination;
+        }
+
+        resolvedDestination += awayFromWall * correctionDistance;
+        return ProjectOntoGround(resolvedDestination);
+    }
+
     private void HandleNavMeshMovement()
     {
         if (waitingForNewDestinationAfterWallStop)
@@ -514,6 +558,49 @@ public class AgentTravel : MonoBehaviour
         }
 
         return foundWall;
+    }
+
+    private bool TryGetClosestWallPoint(
+        Vector3 origin,
+        float searchRadius,
+        out Vector3 closestWallPoint,
+        out float closestWallDistance)
+    {
+        closestWallPoint = Vector3.zero;
+        closestWallDistance = float.PositiveInfinity;
+        if (searchRadius <= 0f)
+        {
+            return false;
+        }
+
+        Collider[] colliders = Physics.OverlapSphere(
+            origin,
+            searchRadius,
+            wallLayers,
+            QueryTriggerInteraction.Ignore);
+
+        for (int i = 0; i < colliders.Length; i++)
+        {
+            Collider wallCollider = colliders[i];
+            if (!IsWallCollider(wallCollider))
+            {
+                continue;
+            }
+
+            Vector3 wallPoint = wallCollider.ClosestPoint(origin);
+            Vector3 flatOffset = origin - wallPoint;
+            flatOffset.y = 0f;
+            float wallDistance = flatOffset.magnitude;
+            if (wallDistance >= closestWallDistance)
+            {
+                continue;
+            }
+
+            closestWallPoint = wallPoint;
+            closestWallDistance = wallDistance;
+        }
+
+        return closestWallDistance < searchRadius;
     }
 
     private bool IsWallHit(RaycastHit hit)
